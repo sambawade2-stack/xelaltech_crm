@@ -21,7 +21,6 @@ services:
   web:
     build: .
     restart: unless-stopped
-    env_file: .env
     volumes:
       - media_files:/app/media
     ports:
@@ -33,7 +32,6 @@ services:
   celery:
     build: .
     restart: unless-stopped
-    env_file: .env
     volumes:
       - media_files:/app/media
     depends_on:
@@ -44,7 +42,6 @@ services:
   celery-beat:
     build: .
     restart: unless-stopped
-    env_file: .env
     depends_on:
       redis:
         condition: service_healthy
