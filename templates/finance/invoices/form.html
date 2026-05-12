@@ -1,0 +1,94 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Nouvelle facture — FinTrack CRM{% endblock %}
+{% block page_title %}Nouvelle facture{% endblock %}
+{% block page_subtitle %}Créer une facture client{% endblock %}
+
+{% block content %}
+<form method="POST" style="max-width:800px;">
+  {% csrf_token %}
+
+  {% if form.errors %}
+  <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+    <p style="color:#ef4444;font-size:13px;font-weight:600;margin:0 0 6px;">Veuillez corriger les erreurs suivantes :</p>
+    {% for field, errors in form.errors.items %}
+      {% for error in errors %}
+        <p style="color:#fca5a5;font-size:12px;margin:2px 0;">• {{ error }}</p>
+      {% endfor %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Client info -->
+  <div class="card" style="padding:20px;margin-bottom:16px;">
+    <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px;">Informations client</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Nom client *</label>
+        {{ form.client_name }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Email</label>
+        {{ form.client_email }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Téléphone</label>
+        {{ form.client_phone }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Adresse</label>
+        {{ form.client_address }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice meta -->
+  <div class="card" style="padding:20px;margin-bottom:16px;">
+    <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px;">Détails de la facture</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Date émission *</label>
+        {{ form.issue_date }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Date échéance *</label>
+        {{ form.due_date }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Statut</label>
+        {{ form.status }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">TVA (%)</label>
+        {{ form.tax_rate }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Remise (FCFA)</label>
+        {{ form.discount }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card" style="padding:20px;margin-bottom:20px;">
+    <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px;">Notes & conditions</p>
+    <div style="display:grid;gap:14px;">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Notes</label>
+        {{ form.notes }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Conditions</label>
+        {{ form.terms }}
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;">
+    <button type="submit" class="btn-primary">
+      <i class="fas fa-save" style="font-size:11px;"></i> Créer la facture
+    </button>
+    <a href="{% url 'finance:invoice_list' %}" class="btn-secondary">Annuler</a>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,456 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Budgets & Caisse — {{ company.name }}{% endblock %}
+{% block page_title %}Budgets & Caisse{% endblock %}
+{% block page_subtitle %}Gérez vos budgets et suivez votre caisse en temps réel{% endblock %}
+
+{% block top_actions %}
+{% if request.user.can_access_finance %}
+<button onclick="openModal('modal-caisse')" class="btn-secondary" style="margin-right:8px;">
+  <i class="fas fa-coins" style="font-size:11px;"></i> Alimenter la caisse
+</button>
+<button onclick="openModal('modal-new-budget')" class="btn-primary">
+  <i class="fas fa-plus" style="font-size:11px;"></i> Nouveau budget
+</button>
+{% else %}
+<a href="{% url 'finance:budget_requests' %}" class="btn-primary">
+  <i class="fas fa-paper-plane" style="font-size:11px;"></i> Demander un budget
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<!-- ══════════════════ CAISSE BANNER ══════════════════ -->
+<div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div style="width:52px;height:52px;background:rgba(37,99,235,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <i class="fas fa-vault" style="font-size:22px;color:#60a5fa;"></i>
+    </div>
+    <div>
+      <p style="font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px;">Solde de la caisse</p>
+      <p style="font-size:30px;font-weight:900;margin:0;color:{% if caisse_balance >= 0 %}#34d399{% else %}#f87171{% endif %};">
+        {{ caisse_balance|floatformat:0|intcomma }} <span style="font-size:16px;font-weight:600;">FCFA</span>
+      </p>
+      {% if caisse_balance < 0 %}
+      <p style="font-size:12px;color:#f87171;margin:2px 0 0;"><i class="fas fa-exclamation-triangle"></i> Déficit — rechargez la caisse</p>
+      {% endif %}
+    </div>
+  </div>
+  <div style="display:flex;gap:24px;flex-wrap:wrap;">
+    {% with movements=caisse_movements %}
+    {% with credits=movements %}
+    <div style="text-align:center;">
+      <p style="font-size:11px;color:#94a3b8;margin:0 0 2px;">Derniers mouvements</p>
+      {% for m in caisse_movements|slice:":3" %}
+      <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+        <span style="font-size:11px;font-weight:700;color:{% if m.movement_type == 'credit' %}#34d399{% else %}#f87171{% endif %};">
+          {% if m.movement_type == 'credit' %}+{% else %}-{% endif %}{{ m.amount|floatformat:0|intcomma }}
+        </span>
+        <span style="font-size:11px;color:#94a3b8;">{{ m.description|truncatechars:28 }}</span>
+        <span style="font-size:10px;color:#64748b;">{{ m.created_at|date:"d/m" }}</span>
+      </div>
+      {% empty %}
+      <p style="font-size:12px;color:#64748b;margin:4px 0 0;">Aucun mouvement</p>
+      {% endfor %}
+    </div>
+    {% endwith %}
+    {% endwith %}
+    {% if request.user.can_access_finance %}
+    <button onclick="openModal('modal-caisse')"
+            style="background:rgba(37,99,235,.25);border:1px solid rgba(37,99,235,.4);color:#60a5fa;
+                   border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;
+                   display:flex;align-items:center;gap:8px;align-self:center;white-space:nowrap;">
+      <i class="fas fa-plus-circle"></i> Ajouter des fonds
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ══════════════════ BUDGETS ACTIFS ══════════════════ -->
+{% with has_active=False %}
+{% for b in budgets %}{% if not b.is_settled %}{% with has_active=True %}{% endwith %}{% endif %}{% endfor %}
+{% endwith %}
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:28px;">
+  {% for budget in budgets %}
+  {% if not budget.is_settled %}
+  <div class="card" style="padding:20px;{% if budget.remaining < 0 %}border-left:4px solid #dc2626;{% elif budget.usage_percentage >= budget.alert_threshold %}border-left:4px solid #f59e0b;{% else %}border-left:4px solid #2563eb;{% endif %}">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+      <div>
+        <p style="font-size:15px;font-weight:700;color:#0f172a;margin:0 0 4px;">{{ budget.name }}</p>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ budget.category.color }};display:inline-block;"></span>
+          <span style="font-size:12px;color:#64748b;">{{ budget.category.name }}</span>
+          <span style="font-size:11px;color:#94a3b8;">· {{ budget.period_start|date:"d/m" }} → {{ budget.period_end|date:"d/m/Y" }}</span>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;margin-left:12px;">
+        <p style="font-size:17px;font-weight:800;color:#0f172a;margin:0;">{{ budget.amount|floatformat:0|intcomma }}</p>
+        <p style="font-size:10px;color:#94a3b8;margin:0;">FCFA alloué</p>
+      </div>
+    </div>
+
+    <!-- Barre de progression -->
+    {% with pct=budget.usage_percentage %}
+    <div style="margin-bottom:14px;">
+      <div style="background:#f1f5f9;border-radius:999px;height:12px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;border-radius:999px;width:{{ pct }}%;transition:width .4s ease;
+             background:{% if pct >= 100 %}#dc2626{% elif pct >= budget.alert_threshold %}#f59e0b{% else %}#2563eb{% endif %};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <div>
+          <span style="font-size:12px;color:#64748b;">Dépensé : </span>
+          <span style="font-size:13px;font-weight:700;color:#0f172a;">{{ budget.spent|floatformat:0|intcomma }} FCFA</span>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size:12px;font-weight:700;color:{% if pct >= 100 %}#dc2626{% elif pct >= budget.alert_threshold %}#f59e0b{% else %}#16a34a{% endif %};">{{ pct }}%</span>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:2px;">
+        <span style="font-size:11px;color:#94a3b8;">Reste budget</span>
+        <span style="font-size:12px;font-weight:600;color:{% if budget.remaining >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+          {{ budget.remaining|floatformat:0|intcomma }} FCFA
+        </span>
+      </div>
+    </div>
+    {% endwith %}
+
+    <!-- Actions -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <!-- Tous les rôles peuvent enregistrer une dépense -->
+      <button onclick="openExpenseModal('{{ budget.pk }}','{{ budget.name|escapejs }}','{{ budget.category.name|escapejs }}')"
+              class="btn-primary" style="flex:1;justify-content:center;padding:9px;min-width:0;">
+        <i class="fas fa-minus-circle" style="font-size:11px;"></i> Enregistrer une dépense
+      </button>
+      <!-- Solder : admin + comptable uniquement -->
+      {% if request.user.can_access_finance %}
+      <form method="POST" action="{% url 'finance:budget_settle' budget.pk %}" style="display:inline;"
+            onsubmit="return confirm('Solder le budget « {{ budget.name|escapejs }} » ?\n\nLe budget sera archivé définitivement.');">
+        {% csrf_token %}
+        <button type="submit" title="Solder le budget"
+                style="background:#f8fafc;border:1px solid #e5e7eb;color:#64748b;border-radius:8px;
+                       padding:9px 13px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;font-weight:500;">
+          <i class="fas fa-check-double" style="font-size:11px;"></i> Solder
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+
+  {% comment %}Afficher si aucun budget actif{% endcomment %}
+  {% with nb=budgets|length %}
+  {% if nb == 0 %}
+  <div class="card" style="padding:50px;text-align:center;grid-column:1/-1;">
+    <i class="fas fa-wallet" style="font-size:38px;color:#cbd5e1;display:block;margin-bottom:14px;"></i>
+    <p style="font-size:15px;font-weight:600;color:#374151;margin:0 0 6px;">Aucun budget actif</p>
+    <p style="font-size:13px;color:#94a3b8;margin:0 0 20px;">Créez votre premier budget pour commencer à suivre vos dépenses.</p>
+    <button onclick="openModal('modal-new-budget')" class="btn-primary">
+      <i class="fas fa-plus" style="font-size:11px;"></i> Créer un budget
+    </button>
+  </div>
+  {% endif %}
+  {% endwith %}
+</div>
+
+
+<!-- ══════════════════ HISTORIQUE CAISSE ══════════════════ -->
+<div style="margin-bottom:24px;">
+  <button onclick="toggleSection('caisse-history','icon-caisse')"
+          style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+                 color:#374151;font-size:14px;font-weight:700;padding:0;margin-bottom:12px;">
+    <i id="icon-caisse" class="fas fa-chevron-right" style="font-size:10px;transition:transform .2s;"></i>
+    Historique de la caisse
+    <span style="font-size:12px;font-weight:400;color:#94a3b8;">({{ caisse_movements|length }} derniers mouvements)</span>
+  </button>
+  <div id="caisse-history" style="display:none;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Date</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Description</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Par</th>
+            <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Montant</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in caisse_movements %}
+          <tr style="border-bottom:1px solid #f8fafc;" onmouseover="this.style.background='#fafbfc'" onmouseout="this.style.background=''">
+            <td style="padding:10px 16px;font-size:12px;color:#64748b;">{{ m.created_at|date:"d/m/Y H:i" }}</td>
+            <td style="padding:10px 16px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="width:8px;height:8px;border-radius:50%;background:{% if m.movement_type == 'credit' %}#16a34a{% else %}#dc2626{% endif %};flex-shrink:0;"></span>
+                <span style="font-size:13px;color:#0f172a;">{{ m.description }}</span>
+              </div>
+            </td>
+            <td style="padding:10px 16px;font-size:12px;color:#64748b;">{{ m.created_by.get_full_name|default:m.created_by.username|default:"—" }}</td>
+            <td style="padding:10px 16px;text-align:right;font-size:14px;font-weight:700;
+                       color:{% if m.movement_type == 'credit' %}#16a34a{% else %}#dc2626{% endif %};">
+              {% if m.movement_type == 'credit' %}+{% else %}-{% endif %}{{ m.amount|floatformat:0|intcomma }} FCFA
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" style="padding:30px;text-align:center;color:#94a3b8;">Aucun mouvement enregistré</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ BUDGETS SOLDÉS ══════════════════ -->
+{% for b in budgets %}{% if b.is_settled %}
+{% if forloop.first %}
+<div>
+  <button onclick="toggleSection('settled-list','icon-settled')"
+          style="background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+                 color:#374151;font-size:14px;font-weight:700;padding:0;margin-bottom:12px;">
+    <i id="icon-settled" class="fas fa-chevron-right" style="font-size:10px;transition:transform .2s;"></i>
+    Budgets soldés
+  </button>
+  <div id="settled-list" style="display:none;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;">
+{% endif %}
+    <div class="card" style="padding:16px;opacity:.75;border-left:4px solid #22c55e;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div>
+          <p style="font-size:13px;font-weight:700;color:#374151;margin:0 0 2px;">{{ b.name }}</p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;">{{ b.category.name }} · Soldé le {{ b.settled_at|date:"d/m/Y" }}</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:14px;font-weight:800;color:#374151;margin:0;">{{ b.amount|floatformat:0|intcomma }}</p>
+          <p style="font-size:10px;color:#94a3b8;">FCFA</p>
+        </div>
+      </div>
+      {% with pct=b.usage_percentage %}
+      <div style="background:#f1f5f9;border-radius:999px;height:6px;overflow:hidden;margin-bottom:4px;">
+        <div style="height:100%;width:{{ pct }}%;background:#22c55e;border-radius:999px;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <span style="font-size:11px;color:#94a3b8;">{{ b.spent|floatformat:0|intcomma }} FCFA ({{ pct }}%)</span>
+        <span style="font-size:11px;color:{% if b.remaining >= 0 %}#16a34a{% else %}#dc2626{% endif %};">
+          Reste: {{ b.remaining|floatformat:0|intcomma }} FCFA
+        </span>
+      </div>
+      {% endwith %}
+    </div>
+{% if forloop.last %}</div></div>{% endif %}
+{% endif %}
+{% endfor %}
+
+
+<!-- ════════ MODAL : Alimenter la caisse ════════ -->
+<div id="modal-caisse" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.25);margin:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 2px;">Alimenter la caisse</h3>
+        <p style="font-size:12px;color:#64748b;margin:0;">Solde actuel : <strong style="color:{% if caisse_balance >= 0 %}#16a34a{% else %}#dc2626{% endif %};">{{ caisse_balance|floatformat:0|intcomma }} FCFA</strong></p>
+      </div>
+      <button onclick="closeModal('modal-caisse')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <form method="POST" action="{% url 'finance:caisse_deposit' %}">
+      {% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Montant à ajouter (FCFA) *</label>
+          <input type="number" name="amount" required min="1" step="0.01" placeholder="0"
+                 class="form-input" style="width:100%;box-sizing:border-box;font-size:18px;font-weight:700;text-align:center;"
+                 autofocus>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Motif / Provenance</label>
+          <input type="text" name="description" placeholder="Ex: Vente client, Apport fonds..."
+                 class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;padding:12px;">
+          <i class="fas fa-coins" style="font-size:11px;"></i> Ajouter à la caisse
+        </button>
+        <button type="button" onclick="closeModal('modal-caisse')" class="btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ════════ MODAL : Dépense budget ════════ -->
+<div id="modal-expense" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px;box-shadow:0 24px 64px rgba(0,0,0,.25);margin:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Enregistrer une dépense</h3>
+      <button onclick="closeModal('modal-expense')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <p id="expense-budget-name" style="font-size:12px;color:#64748b;margin:0 0 18px;"></p>
+
+    <!-- Caisse info dans le modal -->
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:#15803d;font-weight:600;"><i class="fas fa-vault"></i> Solde caisse disponible</span>
+      <span style="font-size:14px;font-weight:800;color:{% if caisse_balance >= 0 %}#15803d{% else %}#dc2626{% endif %};">{{ caisse_balance|floatformat:0|intcomma }} FCFA</span>
+    </div>
+
+    <form method="POST" id="expense-form" action="">
+      {% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Description *</label>
+          <input type="text" name="title" required placeholder="Ex: Achat matériel, Carburant..."
+                 class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Montant (FCFA) *</label>
+            <input type="number" name="amount" required min="1" step="0.01" placeholder="0"
+                   class="form-input" style="width:100%;box-sizing:border-box;font-size:15px;font-weight:700;"
+                   oninput="updateSolde(this.value)">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Date</label>
+            <input type="date" name="date" value="{% now 'Y-m-d' %}"
+                   class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <!-- Solde après dépense -->
+        <div id="solde-preview" style="display:none;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 14px;font-size:12px;color:#dc2626;font-weight:600;"></div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Notes</label>
+          <textarea name="notes" rows="2" placeholder="Détail optionnel..."
+                    class="form-textarea" style="width:100%;box-sizing:border-box;resize:none;"></textarea>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;padding:11px;">
+          <i class="fas fa-save" style="font-size:11px;"></i> Enregistrer &amp; Débiter la caisse
+        </button>
+        <button type="button" onclick="closeModal('modal-expense')" class="btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ════════ MODAL : Nouveau budget ════════ -->
+<div id="modal-new-budget" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(0,0,0,.25);margin:20px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Nouveau budget</h3>
+      <button onclick="closeModal('modal-new-budget')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <form method="POST" action="{% url 'finance:budget_create' %}">
+      {% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Nom du budget *</label>
+          <input type="text" name="name" required placeholder="Ex: Budget Marketing..."
+                 class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Catégorie *</label>
+          <select name="category" required class="form-select" style="width:100%;box-sizing:border-box;">
+            <option value="">Sélectionner...</option>
+            {% for cat in categories %}
+            <option value="{{ cat.pk }}">{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Montant alloué (FCFA) *</label>
+          <input type="number" name="amount" required min="1" step="0.01"
+                 class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Début *</label>
+            <input type="date" name="period_start" required class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Fin *</label>
+            <input type="date" name="period_end" required class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
+            Alerte à (%) <span style="color:#94a3b8;font-weight:400;">défaut 80%</span>
+          </label>
+          <input type="number" name="alert_threshold" value="80" min="10" max="100"
+                 class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;">
+          <i class="fas fa-plus"></i> Créer le budget
+        </button>
+        <button type="button" onclick="closeModal('modal-new-budget')" class="btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<span id="caisse-data" data-balance="{{ caisse_balance|stringformat:'f' }}"></span>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CAISSE_BALANCE = parseFloat(document.getElementById('caisse-data').dataset.balance) || 0;
+
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'flex';
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+function openExpenseModal(budgetId, budgetName, categoryName) {
+  document.getElementById('expense-form').action = '/finance/budgets/' + budgetId + '/expense/';
+  document.getElementById('expense-budget-name').textContent = 'Budget : ' + budgetName + '  ·  ' + categoryName;
+  openModal('modal-expense');
+  document.getElementById('solde-preview').style.display = 'none';
+  document.getElementById('expense-form').reset();
+}
+function updateSolde(val) {
+  const amount = parseFloat(val) || 0;
+  const preview = document.getElementById('solde-preview');
+  if (amount > 0) {
+    const after = CAISSE_BALANCE - amount;
+    preview.style.display = 'block';
+    if (after < 0) {
+      preview.style.background = '#fef2f2';
+      preview.style.borderColor = '#fecaca';
+      preview.style.color = '#dc2626';
+      preview.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Solde caisse après dépense : <strong>' + after.toLocaleString('fr-FR') + ' FCFA</strong> (déficit)';
+    } else {
+      preview.style.background = '#f0fdf4';
+      preview.style.borderColor = '#bbf7d0';
+      preview.style.color = '#15803d';
+      preview.innerHTML = 'Solde caisse après dépense : <strong>' + after.toLocaleString('fr-FR') + ' FCFA</strong>';
+    }
+  } else {
+    preview.style.display = 'none';
+  }
+}
+function toggleSection(sectionId, iconId) {
+  const el = document.getElementById(sectionId);
+  const icon = document.getElementById(iconId);
+  const isHidden = el.style.display === 'none' || el.style.display === '';
+  el.style.display = isHidden ? (sectionId === 'caisse-history' ? 'block' : 'grid') : 'none';
+  icon.style.transform = isHidden ? 'rotate(90deg)' : 'rotate(0deg)';
+}
+// Close on backdrop click
+['modal-caisse','modal-expense','modal-new-budget'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) {
+    if (e.target === this) closeModal(id);
+  });
+});
+</script>
+{% endblock %}

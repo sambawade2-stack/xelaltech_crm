@@ -1,0 +1,21 @@
+{% extends 'base/base.html' %}
+{% block page_title %}Supprimer la transaction{% endblock %}
+{% block content %}
+<div style="max-width:420px;">
+  <div class="card" style="padding:32px;text-align:center;">
+    <div style="width:56px;height:56px;background:#fee2e2;border-radius:14px;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
+      <i class="fas fa-trash" style="color:#dc2626;font-size:20px;"></i>
+    </div>
+    <h2 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 8px;">Supprimer la transaction</h2>
+    <p style="font-size:13px;color:#64748b;margin:0 0 24px;">
+      Confirmer la suppression de <strong>{{ object.title }}</strong>
+      ({{ object.amount|floatformat:0 }} FCFA) ? Cette action est irréversible.
+    </p>
+    <form method="POST" style="display:flex;gap:10px;justify-content:center;">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger"><i class="fas fa-trash" style="font-size:11px;"></i> Supprimer</button>
+      <a href="{% url 'finance:transaction_list' %}" class="btn-secondary">Annuler</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

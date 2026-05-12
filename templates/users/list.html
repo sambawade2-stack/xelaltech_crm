@@ -1,0 +1,248 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Utilisateurs{% endblock %}
+{% block page_title %}Utilisateurs{% endblock %}
+{% block page_subtitle %}Gestion des comptes — {{ users|length }} utilisateur{{ users|length|pluralize }}{% endblock %}
+
+{% block top_actions %}
+<button onclick="openModal('modal-create-user')" class="btn-primary">
+  <i class="fas fa-plus" style="font-size:11px;"></i> Nouvel utilisateur
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Role legend -->
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+  <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #f1f5f9;border-radius:8px;padding:8px 14px;">
+    <span style="width:10px;height:10px;border-radius:50%;background:#dc2626;display:inline-block;"></span>
+    <span style="font-size:12px;font-weight:600;color:#374151;">Administrateur</span>
+    <span style="font-size:11px;color:#94a3b8;margin-left:4px;">Accès total</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #f1f5f9;border-radius:8px;padding:8px 14px;">
+    <span style="width:10px;height:10px;border-radius:50%;background:#2563eb;display:inline-block;"></span>
+    <span style="font-size:12px;font-weight:600;color:#374151;">Comptable</span>
+    <span style="font-size:11px;color:#94a3b8;margin-left:4px;">Finances + Rapports</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #f1f5f9;border-radius:8px;padding:8px 14px;">
+    <span style="width:10px;height:10px;border-radius:50%;background:#6b7280;display:inline-block;"></span>
+    <span style="font-size:12px;font-weight:600;color:#374151;">Membre</span>
+    <span style="font-size:11px;color:#94a3b8;margin-left:4px;">Tableau de bord + Documents</span>
+  </div>
+</div>
+
+<!-- Users table -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
+        <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Utilisateur</th>
+        <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Email</th>
+        <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Rôle</th>
+        <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Statut</th>
+        <th style="padding:12px 20px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Depuis</th>
+        <th style="padding:12px 20px;text-align:right;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in users %}
+      <tr style="border-bottom:1px solid #f8fafc;" onmouseover="this.style.background='#fafbfc'" onmouseout="this.style.background=''">
+        <td style="padding:14px 20px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img src="{{ u.avatar_url }}" alt=""
+                 style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;">
+            <div>
+              <p style="font-size:13px;font-weight:600;color:#0f172a;margin:0;">{{ u.get_full_name|default:u.username }}</p>
+              <p style="font-size:11px;color:#94a3b8;margin:0;">@{{ u.username }}</p>
+            </div>
+          </div>
+        </td>
+        <td style="padding:14px 20px;font-size:13px;color:#64748b;">{{ u.email }}</td>
+        <td style="padding:14px 20px;">
+          {% if u.role == 'admin' %}
+          <span style="background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;">Administrateur</span>
+          {% elif u.role == 'comptable' %}
+          <span style="background:#dbeafe;color:#1d4ed8;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;">Comptable</span>
+          {% else %}
+          <span style="background:#f1f5f9;color:#475569;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;">Membre</span>
+          {% endif %}
+        </td>
+        <td style="padding:14px 20px;">
+          {% if u.is_active %}
+          <span class="badge badge-green">Actif</span>
+          {% else %}
+          <span class="badge badge-red">Inactif</span>
+          {% endif %}
+        </td>
+        <td style="padding:14px 20px;font-size:12px;color:#94a3b8;">{{ u.created_at|date:"d/m/Y" }}</td>
+        <td style="padding:14px 20px;text-align:right;">
+          <div style="display:flex;gap:6px;justify-content:flex-end;">
+            <button onclick="openEditModal('{{ u.pk }}','{{ u.first_name|escapejs }}','{{ u.last_name|escapejs }}','{{ u.role }}')"
+                    class="table-action-btn" title="Modifier">
+              <i class="fas fa-pen" style="font-size:11px;"></i>
+            </button>
+            {% if u != request.user %}
+            <form method="POST" action="{% url 'users:user_toggle' u.pk %}"
+                  onsubmit="return confirm('{% if u.is_active %}Désactiver{% else %}Activer{% endif %} le compte de {{ u.get_full_name|default:u.username|escapejs }} ?')">
+              {% csrf_token %}
+              <button type="submit" class="table-action-btn {% if u.is_active %}danger{% endif %}"
+                      title="{% if u.is_active %}Désactiver{% else %}Activer{% endif %}">
+                <i class="fas {% if u.is_active %}fa-ban{% else %}fa-check{% endif %}" style="font-size:11px;"></i>
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="padding:48px;text-align:center;color:#94a3b8;">Aucun utilisateur</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ════ MODAL : Créer utilisateur ════ -->
+<div id="modal-create-user" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:480px;
+              box-shadow:0 24px 64px rgba(0,0,0,.25);margin:20px;max-height:90vh;overflow-y:auto;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Nouvel utilisateur</h3>
+      <button onclick="closeModal('modal-create-user')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <form method="POST" action="{% url 'users:list' %}">
+      {% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Prénom</label>
+            <input type="text" name="first_name" required class="form-input" style="width:100%;box-sizing:border-box;"
+                   value="{% if show_create_modal %}{{ create_form.first_name.value|default:'' }}{% endif %}">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Nom</label>
+            <input type="text" name="last_name" required class="form-input" style="width:100%;box-sizing:border-box;"
+                   value="{% if show_create_modal %}{{ create_form.last_name.value|default:'' }}{% endif %}">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Email *</label>
+          <input type="email" name="email" required class="form-input" style="width:100%;box-sizing:border-box;"
+                 value="{% if show_create_modal %}{{ create_form.email.value|default:'' }}{% endif %}">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Nom d'utilisateur *</label>
+          <input type="text" name="username" required class="form-input" style="width:100%;box-sizing:border-box;"
+                 value="{% if show_create_modal %}{{ create_form.username.value|default:'' }}{% endif %}">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Rôle *</label>
+          <select name="role" required class="form-select" style="width:100%;box-sizing:border-box;">
+            <option value="membre" {% if show_create_modal and create_form.role.value == 'membre' %}selected{% endif %}>Membre — Tableau de bord + Documents</option>
+            <option value="comptable" {% if show_create_modal and create_form.role.value == 'comptable' %}selected{% endif %}>Comptable — Finances + Rapports + Documents</option>
+            <option value="admin" {% if show_create_modal and create_form.role.value == 'admin' %}selected{% endif %}>Administrateur — Accès complet</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Mot de passe *</label>
+          <input type="password" name="password1" required class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Confirmer le mot de passe *</label>
+          <input type="password" name="password2" required class="form-input" style="width:100%;box-sizing:border-box;">
+        </div>
+        {% if show_create_modal and create_form.errors %}
+        <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;font-size:12px;color:#dc2626;">
+          {% for field, errors in create_form.errors.items %}
+            {% for error in errors %}<p style="margin:2px 0;">{{ error }}</p>{% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;">
+          <i class="fas fa-plus" style="font-size:11px;"></i> Créer
+        </button>
+        <button type="button" onclick="closeModal('modal-create-user')" class="btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+<!-- ════ MODAL : Modifier utilisateur ════ -->
+<div id="modal-edit-user" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:400px;
+              box-shadow:0 24px 64px rgba(0,0,0,.25);margin:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">Modifier l'utilisateur</h3>
+      <button onclick="closeModal('modal-edit-user')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <form method="POST" id="edit-form" action="">
+      {% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Prénom</label>
+            <input type="text" name="first_name" id="edit-first-name" class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Nom</label>
+            <input type="text" name="last_name" id="edit-last-name" class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Rôle</label>
+          <select name="role" id="edit-role" class="form-select" style="width:100%;box-sizing:border-box;">
+            <option value="membre">Membre</option>
+            <option value="comptable">Comptable</option>
+            <option value="admin">Administrateur</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#374151;cursor:pointer;">
+            <input type="checkbox" name="is_active" id="edit-active" style="width:16px;height:16px;">
+            Compte actif
+          </label>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;">
+          <i class="fas fa-save" style="font-size:11px;"></i> Enregistrer
+        </button>
+        <button type="button" onclick="closeModal('modal-edit-user')" class="btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'flex';
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+function openEditModal(pk, firstName, lastName, role) {
+  document.getElementById('edit-form').action = '/auth/users/' + pk + '/edit/';
+  document.getElementById('edit-first-name').value = firstName;
+  document.getElementById('edit-last-name').value = lastName;
+  document.getElementById('edit-role').value = role;
+  document.getElementById('edit-active').checked = true;
+  openModal('modal-edit-user');
+}
+{% if show_create_modal %}openModal('modal-create-user');{% endif %}
+
+['modal-create-user','modal-edit-user'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('click', function(e) { if (e.target === this) closeModal(id); });
+});
+</script>
+{% endblock %}

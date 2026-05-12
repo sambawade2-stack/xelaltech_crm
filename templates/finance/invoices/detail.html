@@ -1,0 +1,135 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Facture {{ invoice.invoice_number }} — FinTrack CRM{% endblock %}
+{% block page_title %}Facture {{ invoice.invoice_number }}{% endblock %}
+{% block page_subtitle %}{{ invoice.client_name }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'finance:invoice_pdf' invoice.pk %}" class="btn-primary">
+  <i class="fas fa-file-pdf" style="font-size:11px;"></i> Télécharger PDF
+</a>
+<a href="{% url 'finance:invoice_list' %}" class="btn-secondary" style="margin-left:8px;">
+  <i class="fas fa-arrow-left" style="font-size:11px;"></i> Retour
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+
+  <!-- Left: Invoice details -->
+  <div>
+    <div class="card" style="padding:24px;margin-bottom:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+        <div>
+          <h2 style="font-size:22px;font-weight:800;color:#e2e8f0;margin:0;">{{ invoice.invoice_number }}</h2>
+          <p style="color:#94a3b8;font-size:13px;margin:4px 0 0;">Émise le {{ invoice.issue_date|date:"d/m/Y" }}</p>
+        </div>
+        <div>
+          {% if invoice.status == 'paid' %}
+            <span class="badge badge-success" style="font-size:13px;padding:6px 14px;">Payé</span>
+          {% elif invoice.status == 'pending' %}
+            <span class="badge badge-warning" style="font-size:13px;padding:6px 14px;">En attente</span>
+          {% elif invoice.status == 'overdue' %}
+            <span class="badge badge-danger" style="font-size:13px;padding:6px 14px;">En retard</span>
+          {% else %}
+            <span class="badge" style="background:rgba(100,116,139,0.15);color:#94a3b8;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;">{{ invoice.get_status_display }}</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;padding-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div>
+          <p style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin:0 0 4px;">Client</p>
+          <p style="font-size:14px;color:#e2e8f0;font-weight:600;margin:0;">{{ invoice.client_name }}</p>
+          {% if invoice.client_email %}<p style="font-size:13px;color:#94a3b8;margin:2px 0 0;">{{ invoice.client_email }}</p>{% endif %}
+          {% if invoice.client_phone %}<p style="font-size:13px;color:#94a3b8;margin:2px 0 0;">{{ invoice.client_phone }}</p>{% endif %}
+          {% if invoice.client_address %}<p style="font-size:13px;color:#94a3b8;margin:4px 0 0;">{{ invoice.client_address }}</p>{% endif %}
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin:0 0 4px;">Échéance</p>
+          <p style="font-size:14px;color:{% if invoice.status == 'overdue' %}#dc2626{% else %}#e2e8f0{% endif %};font-weight:600;margin:0;">{{ invoice.due_date|date:"d/m/Y" }}</p>
+        </div>
+      </div>
+
+      <!-- Items table -->
+      <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">
+        <thead>
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+            <th style="padding:8px 0;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Description</th>
+            <th style="padding:8px 0;text-align:center;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Qté</th>
+            <th style="padding:8px 0;text-align:right;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Prix unit.</th>
+            <th style="padding:8px 0;text-align:right;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in invoice.items.all %}
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+            <td style="padding:10px 0;font-size:13px;color:#cbd5e1;">{{ item.description }}</td>
+            <td style="padding:10px 0;text-align:center;font-size:13px;color:#94a3b8;">{{ item.quantity }}</td>
+            <td style="padding:10px 0;text-align:right;font-size:13px;color:#94a3b8;">{{ item.unit_price|floatformat:0|intcomma }}</td>
+            <td style="padding:10px 0;text-align:right;font-size:13px;font-weight:600;color:#e2e8f0;">{{ item.total|floatformat:0|intcomma }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div style="display:flex;gap:40px;">
+          <span style="font-size:13px;color:#94a3b8;">Sous-total</span>
+          <span style="font-size:13px;color:#e2e8f0;min-width:120px;text-align:right;">{{ invoice.subtotal|floatformat:0|intcomma }} FCFA</span>
+        </div>
+        {% if invoice.tax_rate %}
+        <div style="display:flex;gap:40px;">
+          <span style="font-size:13px;color:#94a3b8;">TVA ({{ invoice.tax_rate }}%)</span>
+          <span style="font-size:13px;color:#e2e8f0;min-width:120px;text-align:right;">{{ invoice.tax_amount|floatformat:0|intcomma }} FCFA</span>
+        </div>
+        {% endif %}
+        {% if invoice.discount %}
+        <div style="display:flex;gap:40px;">
+          <span style="font-size:13px;color:#94a3b8;">Remise</span>
+          <span style="font-size:13px;color:#dc2626;min-width:120px;text-align:right;">-{{ invoice.discount|floatformat:0|intcomma }} FCFA</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;gap:40px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);">
+          <span style="font-size:15px;font-weight:700;color:#e2e8f0;">Total</span>
+          <span style="font-size:15px;font-weight:800;color:#2563eb;min-width:120px;text-align:right;">{{ invoice.total|floatformat:0|intcomma }} FCFA</span>
+        </div>
+      </div>
+    </div>
+
+    {% if invoice.notes %}
+    <div class="card" style="padding:16px;">
+      <p style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin:0 0 8px;">Notes</p>
+      <p style="font-size:13px;color:#94a3b8;margin:0;">{{ invoice.notes }}</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right: Meta -->
+  <div>
+    <div class="card" style="padding:16px;margin-bottom:16px;">
+      <p style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin:0 0 12px;">Informations</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Créée par</p>
+          <p style="font-size:13px;color:#e2e8f0;font-weight:500;margin:0;">{{ invoice.created_by.get_full_name|default:invoice.created_by.username }}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Date création</p>
+          <p style="font-size:13px;color:#e2e8f0;margin:0;">{{ invoice.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Dernière modif.</p>
+          <p style="font-size:13px;color:#e2e8f0;margin:0;">{{ invoice.updated_at|date:"d/m/Y H:i" }}</p>
+        </div>
+      </div>
+    </div>
+    <a href="{% url 'finance:invoice_list' %}" class="btn-secondary" style="display:block;text-align:center;padding:10px;">
+      <i class="fas fa-arrow-left" style="font-size:11px;"></i> Retour à la liste
+    </a>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+version: '3.9'
+
+# ─── Déploiement Dokploy ─────────────────────────────────────────────────────
+# Dokploy + Traefik gèrent le reverse proxy et le SSL.
+# Configurez le domaine et le port 8000 dans l'interface Dokploy.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-fintrack_db}
+      MYSQL_USER: ${DB_USER:-fintrack}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-fintrack}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - media_files:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  celery:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - media_files:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A config.celery worker --loglevel=info --concurrency=2
+
+  celery-beat:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A config.celery beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+
+volumes:
+  db_data:
+  redis_data:
+  media_files:

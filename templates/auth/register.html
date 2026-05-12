@@ -1,0 +1,24 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Inscription — FinTrack CRM{% endblock %}
+
+{% block content %}
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#060f1e;">
+  <div style="width:100%;max-width:420px;padding:20px;">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:48px;height:48px;background:linear-gradient(135deg,#2563eb,#7c3aed);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <i class="fas fa-chart-line" style="color:white;font-size:20px;"></i>
+      </div>
+      <h1 style="font-size:22px;font-weight:800;color:#e2e8f0;margin:0 0 4px;">FinTrack CRM</h1>
+      <p style="font-size:13px;color:#64748b;margin:0;">Créer un compte</p>
+    </div>
+
+    <div class="card" style="padding:28px;">
+      <p style="font-size:13px;color:#94a3b8;text-align:center;margin:0 0 20px;">L'inscription est gérée par l'administrateur. Contactez votre administrateur pour obtenir un accès.</p>
+      <a href="{% url 'users:login' %}" class="btn-primary" style="display:block;text-align:center;padding:12px;">
+        <i class="fas fa-arrow-left" style="font-size:11px;"></i> Retour à la connexion
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

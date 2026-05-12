@@ -1,0 +1,82 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ document.title }} — FinTrack CRM{% endblock %}
+{% block page_title %}{{ document.title }}{% endblock %}
+{% block page_subtitle %}{{ document.get_document_type_display }}{% endblock %}
+
+{% block top_actions %}
+<a href="{{ document.file.url }}" class="btn-primary" download>
+  <i class="fas fa-download" style="font-size:11px;"></i> Télécharger
+</a>
+<a href="{% url 'documents:list' %}" class="btn-secondary" style="margin-left:8px;">
+  <i class="fas fa-arrow-left" style="font-size:11px;"></i> Retour
+</a>
+{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;">
+
+  <div>
+    <div class="card" style="padding:24px;margin-bottom:16px;text-align:center;">
+      {% if document.is_pdf %}
+        <i class="fas fa-file-pdf" style="font-size:64px;color:#ef4444;margin-bottom:16px;display:block;"></i>
+      {% elif document.is_image %}
+        <img src="{{ document.file.url }}" alt="{{ document.title }}" style="max-width:100%;border-radius:8px;">
+      {% else %}
+        <i class="fas fa-file" style="font-size:64px;color:#64748b;margin-bottom:16px;display:block;"></i>
+      {% endif %}
+      <p style="font-size:16px;font-weight:700;color:#e2e8f0;margin:0 0 6px;">{{ document.title }}</p>
+      {% if document.description %}
+      <p style="font-size:13px;color:#94a3b8;margin:0;">{{ document.description }}</p>
+      {% endif %}
+    </div>
+
+    {% if document.tags %}
+    <div class="card" style="padding:16px;">
+      <p style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin:0 0 10px;">Tags</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        {% for tag in document.tags.split %}
+        <span style="background:rgba(37,99,235,0.15);color:#60a5fa;padding:3px 10px;border-radius:999px;font-size:12px;">{{ tag }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="card" style="padding:16px;margin-bottom:16px;">
+      <p style="font-size:11px;color:#64748b;text-transform:uppercase;font-weight:600;margin:0 0 12px;">Informations</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Type</p>
+          <p style="font-size:13px;color:#e2e8f0;font-weight:500;margin:0;">{{ document.get_document_type_display }}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Taille</p>
+          <p style="font-size:13px;color:#e2e8f0;margin:0;">{{ document.file_size_display }}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Uploadé par</p>
+          <p style="font-size:13px;color:#e2e8f0;font-weight:500;margin:0;">{{ document.uploaded_by.get_full_name|default:document.uploaded_by.username }}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Date upload</p>
+          <p style="font-size:13px;color:#e2e8f0;margin:0;">{{ document.created_at|date:"d/m/Y H:i" }}</p>
+        </div>
+        <div>
+          <p style="font-size:11px;color:#64748b;margin:0 0 2px;">Statut</p>
+          <p style="font-size:13px;color:#e2e8f0;margin:0;">{{ document.get_status_display }}</p>
+        </div>
+      </div>
+    </div>
+
+    <form method="POST" action="{% url 'documents:delete' document.pk %}" onsubmit="return confirm('Supprimer ce document ?');">
+      {% csrf_token %}
+      <button type="submit" class="btn-danger" style="width:100%;padding:10px;">
+        <i class="fas fa-trash" style="font-size:11px;"></i> Supprimer
+      </button>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,394 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Dashboard — FinTrack CRM{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_subtitle %}Aperçu financier · {{ now|date:"F Y" }}{% endblock %}
+
+{% block top_actions %}
+<a href="{% url 'finance:transaction_create' %}" class="btn-primary">
+  <i class="fas fa-plus" style="font-size:11px;"></i> Nouvelle transaction
+</a>
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== STAT CARDS ===== -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px;">
+
+  <!-- Revenus -->
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:#dcfce7;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-arrow-trend-up" style="color:#16a34a;font-size:16px;"></i>
+      </div>
+      <span class="badge {% if revenue_change >= 0 %}badge-green{% else %}badge-red{% endif %}">
+        <i class="fas fa-arrow-{% if revenue_change >= 0 %}up{% else %}down{% endif %}" style="font-size:9px;margin-right:3px;"></i>
+        {{ revenue_change|floatformat:1 }}%
+      </span>
+    </div>
+    <p style="font-size:24px;font-weight:800;color:#0f172a;margin:0 0 4px;">{{ revenues|floatformat:0|intcomma }}</p>
+    <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px;">FCFA Revenus</p>
+    <p style="font-size:11px;color:#cbd5e1;margin:0;">vs mois précédent</p>
+  </div>
+
+  <!-- Dépenses -->
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:#fee2e2;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-arrow-trend-down" style="color:#dc2626;font-size:16px;"></i>
+      </div>
+      <span class="badge {% if expense_change <= 0 %}badge-green{% else %}badge-red{% endif %}">
+        <i class="fas fa-arrow-{% if expense_change >= 0 %}up{% else %}down{% endif %}" style="font-size:9px;margin-right:3px;"></i>
+        {{ expense_change|floatformat:1 }}%
+      </span>
+    </div>
+    <p style="font-size:24px;font-weight:800;color:#0f172a;margin:0 0 4px;">{{ expenses|floatformat:0|intcomma }}</p>
+    <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px;">FCFA Dépenses</p>
+    <p style="font-size:11px;color:#cbd5e1;margin:0;">vs mois précédent</p>
+  </div>
+
+  <!-- Bénéfice net -->
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:{% if profit >= 0 %}#dbeafe{% else %}#fff7ed{% endif %};border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-coins" style="color:{% if profit >= 0 %}#2563eb{% else %}#f97316{% endif %};font-size:16px;"></i>
+      </div>
+      <span class="badge {% if profit >= 0 %}badge-blue{% else %}badge-yellow{% endif %}">
+        {% if profit >= 0 %}Positif{% else %}Négatif{% endif %}
+      </span>
+    </div>
+    <p style="font-size:24px;font-weight:800;margin:0 0 4px;color:{% if profit >= 0 %}#0f172a{% else %}#dc2626{% endif %};">
+      {{ profit|floatformat:0|intcomma }}
+    </p>
+    <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px;">FCFA Bénéfice net</p>
+    <p style="font-size:11px;color:#cbd5e1;margin:0;">Ce mois-ci</p>
+  </div>
+
+  <!-- Transactions -->
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:#ede9fe;border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-list-check" style="color:#7c3aed;font-size:16px;"></i>
+      </div>
+      <span class="badge badge-blue">Ce mois</span>
+    </div>
+    <p style="font-size:24px;font-weight:800;color:#0f172a;margin:0 0 4px;">{{ transaction_count }}</p>
+    <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px;">Transactions</p>
+    <p style="font-size:11px;color:#cbd5e1;margin:0;">Opérations enregistrées</p>
+  </div>
+
+  <!-- Solde caisse -->
+  <div class="stat-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="width:40px;height:40px;background:{% if caisse_balance >= 0 %}#dcfce7{% else %}#fee2e2{% endif %};border-radius:10px;display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-vault" style="color:{% if caisse_balance >= 0 %}#16a34a{% else %}#dc2626{% endif %};font-size:16px;"></i>
+      </div>
+      <a href="{% url 'finance:budget_list' %}" style="font-size:11px;color:#2563eb;text-decoration:none;font-weight:500;">Gérer →</a>
+    </div>
+    <p style="font-size:24px;font-weight:800;margin:0 0 4px;color:{% if caisse_balance >= 0 %}#0f172a{% else %}#dc2626{% endif %};">
+      {{ caisse_balance|floatformat:0|intcomma }}
+    </p>
+    <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 2px;">FCFA Solde caisse</p>
+    <p style="font-size:11px;color:#cbd5e1;margin:0;">{% if caisse_balance >= 0 %}Disponible{% else %}Déficit{% endif %}</p>
+  </div>
+</div>
+
+<!-- ===== CHARTS ROW ===== -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px;">
+
+  <!-- Line chart -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 3px;">Revenus vs Dépenses</p>
+        <p style="font-size:12px;color:#94a3b8;margin:0;">6 derniers mois</p>
+      </div>
+      <div style="display:flex;gap:16px;">
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#22c55e;display:inline-block;"></span> Revenus
+        </span>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748b;">
+          <span style="width:10px;height:10px;border-radius:50%;background:#f87171;display:inline-block;"></span> Dépenses
+        </span>
+      </div>
+    </div>
+    <div style="position:relative;height:260px;">
+      <canvas id="revenueChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Donut chart -->
+  <div class="card" style="padding:24px;">
+    <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0 0 3px;">Répartition dépenses</p>
+    <p style="font-size:12px;color:#94a3b8;margin:0 0 16px;">Par catégorie ce mois</p>
+    <div style="position:relative;height:180px;">
+      <canvas id="expenseChart"></canvas>
+    </div>
+    <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+      {% for item in cat_data %}
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ item.category__color|default:'#6b7280' }};display:inline-block;flex-shrink:0;"></span>
+          <span style="color:#475569;">{{ item.category__name|default:"Non classé" }}</span>
+        </div>
+        <span style="font-weight:600;color:#0f172a;">{{ item.total|floatformat:0|intcomma }}</span>
+      </div>
+      {% empty %}
+      <p style="color:#94a3b8;font-size:13px;text-align:center;padding:16px 0;">Aucune dépense ce mois</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ===== BOTTOM ROW ===== -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;">
+
+  <!-- Recent transactions -->
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px 16px;border-bottom:1px solid #f8fafc;">
+      <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0;">Transactions récentes</p>
+      <a href="{% url 'finance:transaction_list' %}" style="font-size:12px;color:#2563eb;text-decoration:none;font-weight:500;">Tout voir →</a>
+    </div>
+    <div>
+      {% for txn in recent_transactions %}
+      <div style="display:flex;align-items:center;gap:14px;padding:12px 24px;border-bottom:1px solid #f8fafc;transition:background .1s;"
+           onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='transparent'">
+        <div style="width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                    background:{% if txn.is_income %}#dcfce7{% elif txn.is_expense %}#fee2e2{% else %}#dbeafe{% endif %};">
+          <i class="fas {% if txn.is_income %}fa-arrow-down{% elif txn.is_expense %}fa-arrow-up{% else %}fa-rotate{% endif %}"
+             style="font-size:12px;color:{% if txn.is_income %}#16a34a{% elif txn.is_expense %}#dc2626{% else %}#2563eb{% endif %};"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:13px;font-weight:600;color:#1e293b;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ txn.title }}</p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;">{{ txn.category.name|default:"Non classé" }} · {{ txn.date|date:"d M Y" }}</p>
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <p style="font-size:13px;font-weight:700;margin:0;
+                    color:{% if txn.is_income %}#16a34a{% elif txn.is_expense %}#dc2626{% else %}#2563eb{% endif %};">
+            {% if txn.is_income %}+{% elif txn.is_expense %}-{% endif %}{{ txn.amount|floatformat:0|intcomma }}
+          </p>
+          <p style="font-size:10px;color:#94a3b8;margin:0;">FCFA</p>
+        </div>
+        <span class="badge {% if txn.status == 'completed' %}badge-green{% elif txn.status == 'pending' %}badge-yellow{% elif txn.status == 'cancelled' %}badge-gray{% else %}badge-red{% endif %}">
+          {{ txn.get_status_display }}
+        </span>
+      </div>
+      {% empty %}
+      <div style="text-align:center;padding:48px 24px;">
+        <div style="width:48px;height:48px;background:#f1f5f9;border-radius:12px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
+          <i class="fas fa-inbox" style="color:#cbd5e1;font-size:18px;"></i>
+        </div>
+        <p style="color:#94a3b8;font-size:13px;margin:0 0 12px;">Aucune transaction récente</p>
+        <a href="{% url 'finance:transaction_create' %}" class="btn-primary" style="font-size:12px;">
+          <i class="fas fa-plus" style="font-size:10px;"></i> Créer une transaction
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Budgets -->
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0;">Budgets actifs</p>
+        <a href="{% url 'finance:budget_list' %}" style="font-size:12px;color:#2563eb;text-decoration:none;">Voir tout →</a>
+      </div>
+      {% for budget in budgets %}
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <p style="font-size:12px;font-weight:600;color:#374151;margin:0;">{{ budget.name }}</p>
+          <p style="font-size:12px;font-weight:700;margin:0;
+                    color:{% if budget.usage_percentage >= 90 %}#dc2626{% elif budget.usage_percentage >= 70 %}#f97316{% else %}#374151{% endif %};">
+            {{ budget.usage_percentage }}%
+          </p>
+        </div>
+        <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;">
+          <div style="height:100%;border-radius:3px;width:{{ budget.usage_percentage }}%;transition:width .5s;
+                      background:{% if budget.usage_percentage >= 90 %}#ef4444{% elif budget.usage_percentage >= 70 %}#f97316{% else %}#22c55e{% endif %};"></div>
+        </div>
+        <p style="font-size:11px;color:#94a3b8;margin:4px 0 0;">{{ budget.spent|floatformat:0|intcomma }} / {{ budget.amount|floatformat:0|intcomma }} FCFA</p>
+      </div>
+      {% empty %}
+      <p style="color:#94a3b8;font-size:13px;text-align:center;padding:16px 0;">Aucun budget configuré</p>
+      {% endfor %}
+    </div>
+
+    <!-- Pending invoices -->
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0;">Factures en attente</p>
+        <a href="{% url 'finance:invoice_list' %}" style="font-size:12px;color:#2563eb;text-decoration:none;">Voir tout →</a>
+      </div>
+      {% for inv in pending_invoices %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f8fafc;border-radius:9px;margin-bottom:8px;">
+        <div>
+          <p style="font-size:12px;font-weight:700;color:#1e293b;margin:0;">{{ inv.invoice_number }}</p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;">{{ inv.client_name }}</p>
+        </div>
+        <div style="text-align:right;">
+          <p style="font-size:13px;font-weight:700;color:#1e293b;margin:0 0 3px;">{{ inv.total|floatformat:0|intcomma }} F</p>
+          <span class="badge {% if inv.status == 'overdue' %}badge-red{% else %}badge-yellow{% endif %}">{{ inv.get_status_display }}</span>
+        </div>
+      </div>
+      {% empty %}
+      <p style="color:#94a3b8;font-size:13px;text-align:center;padding:12px 0;">Aucune facture en attente</p>
+      {% endfor %}
+    </div>
+
+    <!-- Recent activity -->
+    <div class="card" style="padding:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0;">Activité récente</p>
+        <a href="{% url 'audit:list' %}" style="font-size:12px;color:#2563eb;text-decoration:none;">Tout →</a>
+      </div>
+      {% for log in recent_activity|slice:":5" %}
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <div style="width:26px;height:26px;background:#f1f5f9;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">
+          <i class="fas fa-user" style="font-size:10px;color:#94a3b8;"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:12px;color:#475569;margin:0;line-height:1.4;">{{ log.description|truncatechars:65 }}</p>
+          <p style="font-size:11px;color:#94a3b8;margin:2px 0 0;">{{ log.timestamp|timesince }} ago</p>
+        </div>
+      </div>
+      {% empty %}
+      <p style="color:#94a3b8;font-size:13px;text-align:center;padding:12px 0;">Aucune activité récente</p>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Données injectées depuis Django ──────────────────────────────
+const chartLabels   = {{ chart_labels|safe }};
+const chartRevenues = {{ chart_revenues|safe }};
+const chartExpenses = {{ chart_expenses|safe }};
+const catData = [
+  {% for item in cat_data %}
+  {
+    label: "{{ item.category__name|default:'Autre'|escapejs }}",
+    value: parseFloat("{{ item.total }}") || 0,
+    color: "{{ item.category__color|default:'#6b7280' }}"
+  }{% if not forloop.last %},{% endif %}
+  {% endfor %}
+];
+
+// ── Defaults Chart.js ─────────────────────────────────────────────
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size   = 12;
+
+// ── Line chart : Revenus vs Dépenses ─────────────────────────────
+const revenueCtx = document.getElementById('revenueChart');
+if (revenueCtx) {
+  new Chart(revenueCtx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [
+        {
+          label: 'Revenus',
+          data: chartRevenues,
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34,197,94,0.07)',
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#22c55e',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        },
+        {
+          label: 'Dépenses',
+          data: chartExpenses,
+          borderColor: '#f87171',
+          backgroundColor: 'rgba(248,113,113,0.07)',
+          borderWidth: 2.5,
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: '#f87171',
+          pointRadius: 4,
+          pointHoverRadius: 6,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#94a3b8',
+          bodyColor: '#f1f5f9',
+          padding: 12,
+          cornerRadius: 8,
+          callbacks: {
+            label: ctx => `${ctx.dataset.label} : ${ctx.parsed.y.toLocaleString('fr-FR')} FCFA`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { color: '#94a3b8', font: { size: 11 } },
+          border: { display: false }
+        },
+        y: {
+          grid: { color: '#f1f5f9' },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 11 },
+            callback: v => v >= 1000 ? (v/1000).toFixed(0)+'k' : v
+          },
+          border: { display: false }
+        }
+      }
+    }
+  });
+}
+
+// ── Donut chart : Répartition dépenses ───────────────────────────
+const expenseCtx = document.getElementById('expenseChart');
+if (expenseCtx) {
+  if (catData.length > 0) {
+    new Chart(expenseCtx, {
+      type: 'doughnut',
+      data: {
+        labels: catData.map(d => d.label),
+        datasets: [{
+          data: catData.map(d => d.value),
+          backgroundColor: catData.map(d => d.color),
+          borderWidth: 2,
+          borderColor: '#fff',
+          hoverBorderWidth: 3,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1e293b',
+            callbacks: {
+              label: ctx => `${ctx.label} : ${ctx.parsed.toLocaleString('fr-FR')} FCFA`
+            }
+          }
+        }
+      }
+    });
+  } else {
+    expenseCtx.parentNode.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:13px;">Aucune donnée</div>';
+  }
+}
+</script>
+{% endblock %}

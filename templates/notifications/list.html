@@ -1,0 +1,108 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Notifications{% endblock %}
+{% block page_title %}Notifications{% endblock %}
+{% block page_subtitle %}{% if show_all %}Tout l'historique{% else %}Non lues{% endif %}{% endblock %}
+
+{% block top_actions %}
+{% if notifications %}
+<form method="POST" action="{% url 'notifications:mark_all_read' %}">
+  {% csrf_token %}
+  <button type="submit" class="btn-secondary">
+    <i class="fas fa-check-double" style="font-size:11px;"></i> Tout marquer lu
+  </button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div style="max-width:680px;">
+
+  <!-- Tabs -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;">
+    <a href="{% url 'notifications:list' %}"
+       style="padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;
+              {% if not show_all %}background:#2563eb;color:#fff;{% else %}background:#f1f5f9;color:#64748b;{% endif %}">
+      Non lues
+      {% if unread_notifications_count > 0 %}
+      <span style="background:{% if not show_all %}rgba(255,255,255,.25){% else %}#ef4444{% endif %};color:#fff;
+                   border-radius:999px;padding:1px 7px;font-size:11px;margin-left:4px;">
+        {{ unread_notifications_count }}
+      </span>
+      {% endif %}
+    </a>
+    {% if total_read > 0 %}
+    <a href="{% url 'notifications:list' %}?all=1"
+       style="padding:7px 16px;border-radius:8px;font-size:13px;font-weight:500;text-decoration:none;
+              {% if show_all %}background:#2563eb;color:#fff;{% else %}background:#f1f5f9;color:#64748b;{% endif %}">
+      Historique ({{ total_read }})
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- List -->
+  {% for notif in notifications %}
+  <div style="background:#fff;border-radius:12px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.04);
+              padding:16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;
+              {% if not notif.is_read %}border-left:3px solid #2563eb;{% endif %}">
+
+    <!-- Icon -->
+    <div style="width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                {% if notif.notification_type == 'success' %}background:#dcfce7;
+                {% elif notif.notification_type == 'warning' or notif.notification_type == 'alert' %}background:#fef9c3;
+                {% elif notif.notification_type == 'error' %}background:#fee2e2;
+                {% elif notif.notification_type == 'payment' %}background:#ede9fe;
+                {% else %}background:#dbeafe;{% endif %}">
+      <i class="fas
+         {% if notif.notification_type == 'success' %}fa-check-circle" style="color:#16a34a;
+         {% elif notif.notification_type == 'warning' or notif.notification_type == 'alert' %}fa-exclamation-triangle" style="color:#d97706;
+         {% elif notif.notification_type == 'error' %}fa-times-circle" style="color:#dc2626;
+         {% elif notif.notification_type == 'payment' %}fa-credit-card" style="color:#7c3aed;
+         {% else %}fa-info-circle" style="color:#2563eb;{% endif %}
+         font-size:14px;"></i>
+    </div>
+
+    <!-- Content -->
+    <div style="flex:1;min-width:0;">
+      <p style="font-size:14px;font-weight:{% if not notif.is_read %}700{% else %}500{% endif %};
+                color:#0f172a;margin:0 0 3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        {{ notif.title }}
+      </p>
+      <p style="font-size:13px;color:#64748b;margin:0 0 6px;line-height:1.4;">{{ notif.message }}</p>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:11px;color:#94a3b8;">{{ notif.created_at|timesince }}</span>
+        {% if notif.action_url %}
+        <a href="{{ notif.action_url }}" style="font-size:11px;color:#2563eb;text-decoration:none;font-weight:500;">
+          {{ notif.action_label|default:"Voir →" }}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Mark read -->
+    {% if not notif.is_read %}
+    <form method="POST" action="{% url 'notifications:mark_read' notif.pk %}" style="flex-shrink:0;">
+      {% csrf_token %}
+      <button type="submit" title="Marquer comme lu"
+              style="background:#f8fafc;border:1px solid #e5e7eb;color:#64748b;border-radius:7px;
+                     width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <i class="fas fa-check" style="font-size:11px;"></i>
+      </button>
+    </form>
+    {% endif %}
+  </div>
+  {% empty %}
+  <div style="background:#fff;border-radius:12px;border:1px solid #f1f5f9;padding:60px;text-align:center;">
+    <div style="width:52px;height:52px;background:#f1f5f9;border-radius:14px;margin:0 auto 14px;
+                display:flex;align-items:center;justify-content:center;">
+      <i class="fas fa-bell-slash" style="font-size:22px;color:#cbd5e1;"></i>
+    </div>
+    <p style="font-size:15px;font-weight:600;color:#374151;margin:0 0 6px;">Aucune notification</p>
+    <p style="font-size:13px;color:#94a3b8;margin:0;">
+      {% if show_all %}Vous n'avez aucune notification.{% else %}Toutes vos notifications ont été lues.{% endif %}
+    </p>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

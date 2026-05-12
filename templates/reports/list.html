@@ -1,0 +1,244 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+
+{% block title %}Rapports financiers{% endblock %}
+{% block page_title %}Rapports financiers{% endblock %}
+{% block page_subtitle %}Générez et téléchargez vos rapports{% endblock %}
+
+{% block top_actions %}
+<button onclick="openModal('modal-generate')" class="btn-primary">
+  <i class="fas fa-plus" style="font-size:11px;"></i> Générer un rapport
+</button>
+{% endblock %}
+
+{% block content %}
+
+<!-- ══ SECTION FONDS DE CAISSE ══════════════════════════════════ -->
+<div style="margin-bottom:24px;">
+  <p style="font-size:13px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 12px;">
+    <i class="fas fa-vault" style="margin-right:6px;"></i> Fonds de caisse — {{ current_month }}
+  </p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">
+
+    <!-- Solde avant transactions -->
+    <div class="card" style="padding:20px;border-top:3px solid #64748b;">
+      <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">
+        Solde avant transactions
+      </p>
+      <p style="font-size:22px;font-weight:800;color:{% if caisse_opening >= 0 %}#0f172a{% else %}#dc2626{% endif %};margin:0 0 2px;">
+        {{ caisse_opening|floatformat:0|intcomma }}
+      </p>
+      <p style="font-size:11px;color:#94a3b8;margin:0;">FCFA — début {{ current_month }}</p>
+    </div>
+
+    <!-- Entrées du mois -->
+    <div class="card" style="padding:20px;border-top:3px solid #16a34a;">
+      <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">
+        Entrées ce mois
+      </p>
+      <p style="font-size:22px;font-weight:800;color:#16a34a;margin:0 0 2px;">
+        +{{ caisse_credits_month|floatformat:0|intcomma }}
+      </p>
+      <p style="font-size:11px;color:#94a3b8;margin:0;">FCFA alimentés</p>
+    </div>
+
+    <!-- Sorties du mois -->
+    <div class="card" style="padding:20px;border-top:3px solid #dc2626;">
+      <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">
+        Sorties ce mois
+      </p>
+      <p style="font-size:22px;font-weight:800;color:#dc2626;margin:0 0 2px;">
+        −{{ caisse_debits_month|floatformat:0|intcomma }}
+      </p>
+      <p style="font-size:11px;color:#94a3b8;margin:0;">FCFA dépensés</p>
+    </div>
+
+    <!-- Solde actuel -->
+    <div class="card" style="padding:20px;border-top:3px solid {% if caisse_current >= 0 %}#2563eb{% else %}#dc2626{% endif %};">
+      <p style="font-size:11px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px;">
+        Solde actuel
+      </p>
+      <p style="font-size:22px;font-weight:800;color:{% if caisse_current >= 0 %}#2563eb{% else %}#dc2626{% endif %};margin:0 0 2px;">
+        {{ caisse_current|floatformat:0|intcomma }}
+      </p>
+      <p style="font-size:11px;color:#94a3b8;margin:0;">
+        FCFA — après toutes les transactions
+        {% if caisse_current < 0 %}<span style="color:#dc2626;font-weight:600;"> ⚠ Déficit</span>{% endif %}
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══ LISTE DES RAPPORTS ════════════════════════════════════════ -->
+<div class="card" style="padding:0;overflow:hidden;">
+  <div style="padding:16px 20px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+    <p style="font-size:14px;font-weight:700;color:#0f172a;margin:0;">Rapports générés</p>
+    <span style="font-size:12px;color:#94a3b8;">{{ reports|length }} rapport{{ reports|length|pluralize }}</span>
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;">
+    <thead>
+      <tr style="background:#f8fafc;border-bottom:1px solid #f1f5f9;">
+        <th style="padding:10px 20px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Rapport</th>
+        <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Type</th>
+        <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Période</th>
+        <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Statut</th>
+        <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Généré par</th>
+        <th style="padding:10px 16px;text-align:right;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em;">Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for report in reports %}
+      <tr style="border-bottom:1px solid #f8fafc;" onmouseover="this.style.background='#fafbfc'" onmouseout="this.style.background=''">
+        <td style="padding:14px 20px;">
+          <p style="font-size:13px;font-weight:600;color:#0f172a;margin:0;">{{ report.title }}</p>
+          <p style="font-size:11px;color:#94a3b8;margin:0;">{{ report.created_at|date:"d/m/Y H:i" }}</p>
+        </td>
+        <td style="padding:14px 16px;">
+          <span class="badge badge-blue">{{ report.get_report_type_display }}</span>
+        </td>
+        <td style="padding:14px 16px;font-size:12px;color:#64748b;">
+          {{ report.period_start|date:"d/m/Y" }} — {{ report.period_end|date:"d/m/Y" }}
+        </td>
+        <td style="padding:14px 16px;">
+          <span class="badge {% if report.status == 'completed' %}badge-green{% elif report.status == 'pending' %}badge-yellow{% else %}badge-red{% endif %}">
+            {{ report.get_status_display }}
+          </span>
+        </td>
+        <td style="padding:14px 16px;font-size:12px;color:#64748b;">{{ report.generated_by|default:"—" }}</td>
+        <td style="padding:14px 16px;text-align:right;">
+          {% if report.status == 'completed' %}
+          <a href="{% url 'reports:download' report.pk %}" class="btn-secondary" style="font-size:12px;padding:6px 12px;">
+            <i class="fas fa-download" style="font-size:11px;"></i> Télécharger
+          </a>
+          {% elif report.status == 'pending' %}
+          <span style="font-size:12px;color:#94a3b8;">En cours…</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="6" style="padding:48px;text-align:center;">
+          <div style="width:48px;height:48px;background:#f1f5f9;border-radius:12px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-chart-bar" style="color:#cbd5e1;font-size:18px;"></i>
+          </div>
+          <p style="color:#94a3b8;font-size:13px;margin:0 0 12px;">Aucun rapport généré</p>
+          <button onclick="openModal('modal-generate')" class="btn-primary" style="font-size:12px;">
+            <i class="fas fa-plus" style="font-size:10px;"></i> Générer le premier rapport
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ════ MODAL : Générer un rapport ════ -->
+<div id="modal-generate" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:440px;
+              box-shadow:0 24px 64px rgba(0,0,0,.25);margin:20px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <div>
+        <h3 style="font-size:16px;font-weight:700;color:#0f172a;margin:0 0 2px;">Générer un rapport</h3>
+        <p style="font-size:12px;color:#64748b;margin:0;">Le rapport inclut le récapitulatif de la caisse</p>
+      </div>
+      <button onclick="closeModal('modal-generate')" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:20px;line-height:1;">✕</button>
+    </div>
+    <form method="POST" action="{% url 'reports:create' %}">
+      {% csrf_token %}
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Type de rapport</label>
+          <select name="report_type" class="form-select" style="width:100%;box-sizing:border-box;">
+            <option value="monthly">Rapport mensuel</option>
+            <option value="annual">Rapport annuel</option>
+            <option value="cashflow">Cash Flow</option>
+            <option value="expense_category">Dépenses par catégorie</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Date début</label>
+            <input type="date" name="period_start" required class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Date fin</label>
+            <input type="date" name="period_end" required class="form-input" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Format</label>
+          <div style="display:flex;gap:10px;">
+            {% for value, label in formats %}
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+                          padding:10px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;
+                          font-size:13px;font-weight:500;color:#374151;"
+                   onclick="selectFormat(this,'{{ value }}')">
+              <input type="radio" name="export_format" value="{{ value }}" style="display:none;"
+                     {% if forloop.first %}checked{% endif %}>
+              <i class="fas {% if value == 'pdf' %}fa-file-pdf{% elif value == 'excel' %}fa-file-excel{% else %}fa-file-csv{% endif %}"
+                 style="color:{% if value == 'pdf' %}#dc2626{% elif value == 'excel' %}#16a34a{% else %}#2563eb{% endif %};"></i>
+              {{ label }}
+            </label>
+            {% empty %}
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+                          padding:10px;border:2px solid #2563eb;border-radius:8px;cursor:pointer;background:#eff6ff;
+                          font-size:13px;font-weight:500;color:#374151;" id="fmt-pdf">
+              <input type="radio" name="export_format" value="pdf" checked style="display:none;">
+              <i class="fas fa-file-pdf" style="color:#dc2626;"></i> PDF
+            </label>
+            <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;
+                          padding:10px;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;
+                          font-size:13px;font-weight:500;color:#374151;" id="fmt-excel">
+              <input type="radio" name="export_format" value="excel" style="display:none;">
+              <i class="fas fa-file-excel" style="color:#16a34a;"></i> Excel
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button type="submit" class="btn-primary" style="flex:1;justify-content:center;">
+          <i class="fas fa-chart-bar" style="font-size:11px;"></i> Générer
+        </button>
+        <button type="button" onclick="closeModal('modal-generate')" class="btn-secondary">Annuler</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'flex';
+}
+function closeModal(id) {
+  var el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+function selectFormat(label, value) {
+  document.querySelectorAll('[name="export_format"]').forEach(function(inp) {
+    var lbl = inp.closest('label');
+    lbl.style.border = '1px solid #e5e7eb';
+    lbl.style.background = '';
+  });
+  label.style.border = '2px solid #2563eb';
+  label.style.background = '#eff6ff';
+  label.querySelector('input').checked = true;
+}
+// Init first format selected
+document.addEventListener('DOMContentLoaded', function() {
+  var first = document.querySelector('[name="export_format"]');
+  if (first) selectFormat(first.closest('label'), first.value);
+});
+document.getElementById('modal-generate').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('modal-generate');
+});
+</script>
+{% endblock %}

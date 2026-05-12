@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr" style="height:100%">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}{% if company %}{{ company.name }}{% else %}Xelaltech221 CRM{% endif %}{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; }
+
+    /* ---- Sidebar ---- */
+    .sidebar { background: #081C3A; width: 240px; min-height: 100vh; display: flex; flex-direction: column; }
+    .sidebar-nav-label {
+      padding: 16px 16px 6px 16px; font-size: 10px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .08em; color: #64748b;
+    }
+    .sidebar-link {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px; border-radius: 8px; margin: 1px 8px;
+      color: #94a3b8; text-decoration: none; font-size: 13px; font-weight: 500;
+      transition: background .15s, color .15s;
+    }
+    .sidebar-link:hover { background: #0d2b56; color: #e2e8f0; }
+    .sidebar-link.active { background: #2563EB; color: #fff; }
+    .sidebar-link .icon { width: 16px; text-align: center; flex-shrink: 0; }
+
+    /* ---- Buttons ---- */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; background: #2563EB; color: #fff;
+      font-size: 13px; font-weight: 500; border-radius: 8px; border: none;
+      cursor: pointer; text-decoration: none; transition: background .15s;
+    }
+    .btn-primary:hover { background: #1d4ed8; color: #fff; }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; background: #fff; color: #374151;
+      font-size: 13px; font-weight: 500; border-radius: 8px;
+      border: 1px solid #e5e7eb; cursor: pointer; text-decoration: none;
+      transition: background .15s;
+    }
+    .btn-secondary:hover { background: #f9fafb; }
+    .btn-danger {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 16px; background: #ef4444; color: #fff;
+      font-size: 13px; font-weight: 500; border-radius: 8px; border: none;
+      cursor: pointer; text-decoration: none; transition: background .15s;
+    }
+    .btn-danger:hover { background: #dc2626; }
+
+    /* ---- Cards ---- */
+    .card { background: #fff; border-radius: 12px; border: 1px solid #f1f5f9; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+    .stat-card {
+      background: #fff; border-radius: 12px; border: 1px solid #f1f5f9;
+      box-shadow: 0 1px 3px rgba(0,0,0,.04); padding: 24px;
+      transition: box-shadow .2s;
+    }
+    .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+    /* ---- Badges ---- */
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+    }
+    .badge-green  { background: #dcfce7; color: #15803d; }
+    .badge-red    { background: #fee2e2; color: #dc2626; }
+    .badge-yellow { background: #fef9c3; color: #a16207; }
+    .badge-blue   { background: #dbeafe; color: #1d4ed8; }
+    .badge-gray   { background: #f1f5f9; color: #475569; }
+    .badge-purple { background: #ede9fe; color: #7c3aed; }
+
+    /* ---- Form elements ---- */
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 9px 14px; font-size: 13px; color: #374151;
+      border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;
+      outline: none; transition: border-color .15s, box-shadow .15s;
+      box-sizing: border-box;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+    }
+    .form-textarea { resize: vertical; }
+
+    /* ---- Table ---- */
+    .table-action-btn {
+      width: 30px; height: 30px; border-radius: 7px; background: #f8fafc;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: #64748b; text-decoration: none; border: 1px solid #e5e7eb;
+      transition: background .15s, color .15s;
+    }
+    .table-action-btn:hover { background: #dbeafe; color: #2563EB; border-color: #bfdbfe; }
+    .table-action-btn.danger:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
+
+    /* ---- Scrollbar ---- */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    /* ---- Messages Django ---- */
+    .msg-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
+    .msg-error   { background:#fef2f2; border:1px solid #fecaca; color:#dc2626; }
+    .msg-warning { background:#fffbeb; border:1px solid #fde68a; color:#d97706; }
+    .msg-info    { background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body style="min-height:100vh; background:#f8fafc; display:flex;">
+
+<!-- ===================== SIDEBAR ===================== -->
+<aside class="sidebar" style="flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto;">
+
+  <!-- Logo -->
+  <div style="padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,.08);">
+    <div style="display:flex; align-items:center; gap:10px;">
+      {% if company and company.logo %}
+        <img src="{{ company.logo.url }}" alt="{{ company.name }}"
+             style="width:36px;height:36px;border-radius:9px;object-fit:contain;background:#fff;flex-shrink:0;">
+      {% else %}
+        <div style="width:36px;height:36px;background:#2563EB;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-chart-line" style="color:#fff;font-size:14px;"></i>
+        </div>
+      {% endif %}
+      <span style="color:#fff;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        {% if company %}{{ company.name }}{% else %}Xelaltech221 CRM{% endif %}
+      </span>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <nav style="flex:1; padding:8px 0;">
+
+    <!-- Tous les rôles -->
+    <a href="{% url 'dashboard:index' %}"
+       class="sidebar-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
+      <i class="fas fa-home icon"></i> Tableau de bord
+    </a>
+
+    <!-- Finances : lecture pour tous, écriture selon rôle -->
+    <a href="{% url 'finance:index' %}"
+       class="sidebar-link {% if 'finance' in request.path and 'budget' not in request.path and 'budget-request' not in request.path %}active{% endif %}">
+      <i class="fas fa-exchange-alt icon"></i> Finances
+    </a>
+    <a href="{% url 'finance:budget_list' %}"
+       class="sidebar-link {% if 'budgets' in request.path %}active{% endif %}">
+      <i class="fas fa-wallet icon"></i> Budgets & Caisse
+    </a>
+
+    <!-- Demandes de budget : tous les rôles -->
+    <a href="{% url 'finance:budget_requests' %}"
+       class="sidebar-link {% if 'budget-request' in request.path %}active{% endif %}"
+       style="position:relative;">
+      <i class="fas fa-paper-plane icon"></i> Demandes
+      {% if pending_budget_requests_count > 0 and request.user.can_access_finance %}
+      <span style="position:absolute;right:12px;background:#ef4444;color:#fff;border-radius:999px;
+                   font-size:10px;font-weight:700;padding:1px 6px;">{{ pending_budget_requests_count }}</span>
+      {% endif %}
+    </a>
+
+    <!-- Rapports : admin + comptable -->
+    {% if request.user.can_access_finance %}
+    <a href="{% url 'reports:list' %}"
+       class="sidebar-link {% if 'reports' in request.path %}active{% endif %}">
+      <i class="fas fa-chart-bar icon"></i> Rapports
+    </a>
+    {% endif %}
+
+    <!-- Documents : tous -->
+    <a href="{% url 'documents:list' %}"
+       class="sidebar-link {% if 'documents' in request.path %}active{% endif %}">
+      <i class="fas fa-folder icon"></i> Documents
+    </a>
+
+    <!-- Admin seulement -->
+    {% if request.user.is_admin %}
+    <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">
+      <p class="sidebar-nav-label">Administration</p>
+      <a href="{% url 'users:list' %}"
+         class="sidebar-link {% if 'users' in request.path %}active{% endif %}">
+        <i class="fas fa-users icon"></i> Utilisateurs
+      </a>
+      <a href="{% url 'audit:list' %}"
+         class="sidebar-link {% if 'audit' in request.path %}active{% endif %}">
+        <i class="fas fa-shield-alt icon"></i> Audit & Logs
+      </a>
+    </div>
+    {% endif %}
+
+  </nav>
+
+  <!-- User info + settings -->
+  <div style="padding:12px 8px; border-top:1px solid rgba(255,255,255,.08);">
+    <a href="{% url 'users:settings' %}"
+       class="sidebar-link {% if 'settings' in request.path %}active{% endif %}"
+       style="margin-bottom:4px;">
+      <i class="fas fa-cog icon"></i> Paramètres
+    </a>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px;">
+      <img src="{{ request.user.avatar_url }}" alt=""
+           style="width:34px;height:34px;border-radius:50%;object-fit:cover;">
+      <div style="flex:1;min-width:0;">
+        <p style="color:#f1f5f9;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {{ request.user.get_full_name|default:request.user.username }}
+        </p>
+        <p style="color:#64748b;font-size:11px;">{{ request.user.get_role_display }}</p>
+      </div>
+      <div style="display:flex;gap:4px;">
+        <a href="{% url 'users:profile' %}"
+           style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#64748b;text-decoration:none;transition:background .15s;"
+           onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
+          <i class="fas fa-cog" style="font-size:12px;"></i>
+        </a>
+        <a href="{% url 'account_logout' %}"
+           style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#64748b;text-decoration:none;transition:background .15s;"
+           onmouseover="this.style.color='#f87171';this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.color='#64748b';this.style.background='rgba(255,255,255,.06)'">
+          <i class="fas fa-sign-out-alt" style="font-size:12px;"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ===================== MAIN ===================== -->
+<div style="flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden;">
+
+  <!-- Top bar -->
+  <header style="background:#fff;border-bottom:1px solid #f1f5f9;padding:0 24px;height:60px;
+                 display:flex;align-items:center;justify-content:space-between;
+                 position:sticky;top:0;z-index:10;flex-shrink:0;">
+    <div>
+      <h1 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">
+        {% block page_title %}Dashboard{% endblock %}
+      </h1>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">{% block page_subtitle %}{% endblock %}</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="position:relative;display:none;" class="md:block">
+        <input type="text" placeholder="Rechercher..."
+               style="width:220px;padding:7px 12px 7px 34px;background:#f8fafc;border:1px solid #e5e7eb;
+                      border-radius:8px;font-size:13px;color:#374151;outline:none;">
+        <i class="fas fa-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px;"></i>
+      </div>
+      <a href="{% url 'notifications:list' %}"
+         style="position:relative;width:36px;height:36px;background:#f8fafc;border:1px solid #e5e7eb;
+                border-radius:8px;display:flex;align-items:center;justify-content:center;
+                color:#64748b;text-decoration:none;transition:background .15s;"
+         onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+        <i class="fas fa-bell" style="font-size:13px;"></i>
+        {% if unread_notifications_count > 0 %}
+          <span style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;
+                       font-size:10px;font-weight:700;border-radius:999px;min-width:16px;height:16px;
+                       display:flex;align-items:center;justify-content:center;padding:0 3px;">
+            {{ unread_notifications_count }}
+          </span>
+        {% endif %}
+      </a>
+      {% block top_actions %}{% endblock %}
+    </div>
+  </header>
+
+  <!-- Django Messages (toast auto-dismiss) -->
+  {% if messages %}
+  <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;">
+    {% for message in messages %}
+    <div class="toast-msg" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;
+         font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.12);
+         background:{% if message.tags == 'error' %}#fef2f2{% elif message.tags == 'warning' %}#fffbeb{% else %}#f0fdf4{% endif %};
+         border-left:3px solid {% if message.tags == 'error' %}#dc2626{% elif message.tags == 'warning' %}#f59e0b{% else %}#16a34a{% endif %};">
+      <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle" style="color:#dc2626{% elif message.tags == 'warning' %}fa-exclamation-triangle" style="color:#f59e0b{% else %}fa-check-circle" style="color:#16a34a{% endif %};font-size:14px;flex-shrink:0;"></i>
+      <span style="color:#374151;flex:1;">{{ message }}</span>
+      <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;">✕</button>
+    </div>
+    {% endfor %}
+  </div>
+  <script>
+    setTimeout(function() {
+      var c = document.getElementById('toast-container');
+      if (c) { c.style.transition = 'opacity .4s'; c.style.opacity = '0'; setTimeout(function(){ c.remove(); }, 400); }
+    }, 3000);
+  </script>
+  {% endif %}
+
+  <!-- Page content -->
+  <main style="flex:1;overflow-y:auto;padding:24px;">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

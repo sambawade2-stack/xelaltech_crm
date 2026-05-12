@@ -1,0 +1,53 @@
+{% extends 'base/base.html' %}
+{% load humanize %}
+{% block page_title %}Transaction — {{ transaction.title }}{% endblock %}
+{% block top_actions %}
+<a href="{% url 'finance:transaction_update' transaction.pk %}" class="btn-primary">
+  <i class="fas fa-edit" style="font-size:11px;"></i> Modifier
+</a>
+{% endblock %}
+{% block content %}
+<div style="max-width:680px;">
+  <div class="card" style="padding:28px;">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+      <div style="width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+                  background:{% if transaction.is_income %}#dcfce7{% elif transaction.is_expense %}#fee2e2{% else %}#dbeafe{% endif %};">
+        <i class="fas {% if transaction.is_income %}fa-arrow-down{% elif transaction.is_expense %}fa-arrow-up{% else %}fa-rotate{% endif %}"
+           style="color:{% if transaction.is_income %}#16a34a{% elif transaction.is_expense %}#dc2626{% else %}#2563eb{% endif %};font-size:18px;"></i>
+      </div>
+      <div style="flex:1;">
+        <h2 style="font-size:18px;font-weight:800;color:#0f172a;margin:0 0 3px;">{{ transaction.title }}</h2>
+        <p style="font-size:12px;color:#94a3b8;margin:0;font-family:monospace;">{{ transaction.reference }}</p>
+      </div>
+      <div style="text-align:right;">
+        <p style="font-size:26px;font-weight:800;margin:0;color:{% if transaction.is_income %}#16a34a{% elif transaction.is_expense %}#dc2626{% else %}#2563eb{% endif %};">
+          {{ transaction.amount|floatformat:0|intcomma }} FCFA
+        </p>
+        <span class="badge {% if transaction.status == 'completed' %}badge-green{% elif transaction.status == 'pending' %}badge-yellow{% else %}badge-gray{% endif %}">
+          {{ transaction.get_status_display }}
+        </span>
+      </div>
+    </div>
+    <hr style="border:none;border-top:1px solid #f1f5f9;margin-bottom:20px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+      <div><p style="color:#94a3b8;margin:0 0 3px;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;">Type</p><p style="font-weight:600;color:#1e293b;margin:0;">{{ transaction.get_transaction_type_display }}</p></div>
+      <div><p style="color:#94a3b8;margin:0 0 3px;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;">Date</p><p style="font-weight:600;color:#1e293b;margin:0;">{{ transaction.date|date:"d M Y" }}</p></div>
+      <div><p style="color:#94a3b8;margin:0 0 3px;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;">Catégorie</p><p style="font-weight:600;color:#1e293b;margin:0;">{{ transaction.category.name|default:"—" }}</p></div>
+      <div><p style="color:#94a3b8;margin:0 0 3px;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;">Créé par</p><p style="font-weight:600;color:#1e293b;margin:0;">{{ transaction.created_by|default:"—" }}</p></div>
+      {% if transaction.description %}<div style="grid-column:1/-1;"><p style="color:#94a3b8;margin:0 0 3px;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;">Description</p><p style="color:#374151;margin:0;">{{ transaction.description }}</p></div>{% endif %}
+      {% if transaction.notes %}<div style="grid-column:1/-1;"><p style="color:#94a3b8;margin:0 0 3px;font-size:11px;text-transform:uppercase;font-weight:600;letter-spacing:.06em;">Notes</p><p style="color:#374151;margin:0;">{{ transaction.notes }}</p></div>{% endif %}
+    </div>
+    {% if transaction.attachment %}
+    <div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;display:flex;align-items:center;gap:10px;">
+      <i class="fas fa-paperclip" style="color:#94a3b8;"></i>
+      <a href="{{ transaction.attachment.url }}" target="_blank" style="color:#2563eb;font-size:13px;text-decoration:none;">Voir la pièce jointe</a>
+    </div>
+    {% endif %}
+    <div style="display:flex;gap:10px;margin-top:24px;">
+      <a href="{% url 'finance:transaction_update' transaction.pk %}" class="btn-primary">Modifier</a>
+      <a href="{% url 'finance:transaction_delete' transaction.pk %}" class="btn-danger">Supprimer</a>
+      <a href="{% url 'finance:transaction_list' %}" class="btn-secondary">← Retour</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

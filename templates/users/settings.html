@@ -1,0 +1,191 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Paramètres — {{ company.name }}{% endblock %}
+{% block page_title %}Paramètres{% endblock %}
+{% block page_subtitle %}Configuration de l'entreprise et du compte{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+
+  <!-- Company Settings -->
+  <div>
+    <div class="card" style="padding:24px;">
+      <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 20px;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-building" style="color:#2563eb;"></i> Paramètres entreprise
+      </p>
+
+      {% if request.user.role == 'admin' or request.user.role == 'manager' %}
+      <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Logo preview -->
+        <div style="margin-bottom:20px;text-align:center;">
+          {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="Logo" id="logo-preview"
+                 style="width:80px;height:80px;object-fit:contain;border-radius:12px;border:2px solid #e5e7eb;padding:4px;background:#fff;">
+          {% else %}
+            <div id="logo-preview-placeholder" style="width:80px;height:80px;border-radius:12px;border:2px dashed #cbd5e1;display:flex;align-items:center;justify-content:center;margin:0 auto;background:#f8fafc;">
+              <i class="fas fa-image" style="font-size:24px;color:#94a3b8;"></i>
+            </div>
+            <img id="logo-preview" src="" alt="" style="display:none;width:80px;height:80px;object-fit:contain;border-radius:12px;border:2px solid #e5e7eb;padding:4px;background:#fff;">
+          {% endif %}
+          <p style="font-size:11px;color:#94a3b8;margin:6px 0 0;">Logo de l'entreprise</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
+              Nom de l'entreprise *
+            </label>
+            {{ company_form.name }}
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
+              Slogan / Description
+            </label>
+            {{ company_form.tagline }}
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">
+              Logo
+            </label>
+            <input type="file" name="logo" accept="image/*" id="logo-upload"
+                   style="width:100%;padding:8px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;color:#374151;cursor:pointer;">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Email</label>
+              {{ company_form.email }}
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Téléphone</label>
+              {{ company_form.phone }}
+            </div>
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Adresse</label>
+            {{ company_form.address }}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Site web</label>
+              {{ company_form.website }}
+            </div>
+            <div>
+              <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;">Devise</label>
+              {{ company_form.currency }}
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-primary" style="margin-top:20px;width:100%;justify-content:center;">
+          <i class="fas fa-save" style="font-size:11px;"></i> Enregistrer les paramètres
+        </button>
+      </form>
+      {% else %}
+      <div style="text-align:center;padding:20px;color:#94a3b8;">
+        <i class="fas fa-lock" style="font-size:28px;margin-bottom:8px;display:block;opacity:.4;"></i>
+        Seuls les administrateurs et managers peuvent modifier ces paramètres.
+      </div>
+      <!-- Display-only -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+        {% if company.logo %}
+        <div style="text-align:center;">
+          <img src="{{ company.logo.url }}" alt="Logo"
+               style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:1px solid #e5e7eb;">
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:#64748b;">Nom</span>
+          <span style="font-size:13px;font-weight:600;color:#0f172a;">{{ company.name }}</span>
+        </div>
+        {% if company.email %}
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:#64748b;">Email</span>
+          <span style="font-size:13px;color:#0f172a;">{{ company.email }}</span>
+        </div>
+        {% endif %}
+        {% if company.phone %}
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:#64748b;">Téléphone</span>
+          <span style="font-size:13px;color:#0f172a;">{{ company.phone }}</span>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Account Settings -->
+  <div style="display:flex;flex-direction:column;gap:16px;">
+
+    <!-- Current company info (read-only preview) -->
+    <div class="card" style="padding:20px;">
+      <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-info-circle" style="color:#2563eb;"></i> Informations actuelles
+      </p>
+      <div style="display:flex;align-items:center;gap:14px;padding:12px;background:#f8fafc;border-radius:10px;margin-bottom:12px;">
+        {% if company.logo %}
+          <img src="{{ company.logo.url }}" alt="" style="width:48px;height:48px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid #e5e7eb;">
+        {% else %}
+          <div style="width:48px;height:48px;background:#2563eb;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <i class="fas fa-chart-line" style="color:#fff;font-size:18px;"></i>
+          </div>
+        {% endif %}
+        <div>
+          <p style="font-size:15px;font-weight:700;color:#0f172a;margin:0;">{{ company.name }}</p>
+          {% if company.tagline %}<p style="font-size:12px;color:#64748b;margin:2px 0 0;">{{ company.tagline }}</p>{% endif %}
+        </div>
+      </div>
+      {% if company.email or company.phone or company.address %}
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        {% if company.email %}<p style="font-size:12px;color:#64748b;margin:0;"><i class="fas fa-envelope" style="width:14px;"></i> {{ company.email }}</p>{% endif %}
+        {% if company.phone %}<p style="font-size:12px;color:#64748b;margin:0;"><i class="fas fa-phone" style="width:14px;"></i> {{ company.phone }}</p>{% endif %}
+        {% if company.address %}<p style="font-size:12px;color:#64748b;margin:0;"><i class="fas fa-map-marker-alt" style="width:14px;"></i> {{ company.address }}</p>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- User account -->
+    <div class="card" style="padding:20px;">
+      <p style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin:0 0 16px;display:flex;align-items:center;gap:8px;">
+        <i class="fas fa-user" style="color:#2563eb;"></i> Mon compte
+      </p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:#64748b;">Nom complet</span>
+          <span style="font-size:13px;font-weight:500;color:#0f172a;">{{ request.user.get_full_name|default:"—" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:#64748b;">Email</span>
+          <span style="font-size:13px;color:#0f172a;">{{ request.user.email }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:13px;color:#64748b;">Rôle</span>
+          <span style="font-size:13px;color:#0f172a;">{{ request.user.get_role_display }}</span>
+        </div>
+      </div>
+      <a href="{% url 'users:profile' %}" class="btn-primary" style="display:block;text-align:center;margin-top:14px;padding:9px;">
+        <i class="fas fa-user-edit" style="font-size:11px;"></i> Modifier le profil
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+document.getElementById('logo-upload')?.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    const preview = document.getElementById('logo-preview');
+    const placeholder = document.getElementById('logo-preview-placeholder');
+    preview.src = ev.target.result;
+    preview.style.display = 'block';
+    if (placeholder) placeholder.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+});
+</script>
+{% endblock %}

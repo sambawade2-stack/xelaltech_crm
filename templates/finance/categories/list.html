@@ -1,0 +1,35 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Catégories — FinTrack CRM{% endblock %}
+{% block page_title %}Catégories{% endblock %}
+{% block page_subtitle %}Gestion des catégories de transactions{% endblock %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;">
+  {% for cat in categories %}
+  <div class="card" style="padding:18px;display:flex;align-items:center;gap:14px;">
+    <div style="width:44px;height:44px;border-radius:10px;background:{{ cat.color }}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <i class="fas fa-{{ cat.icon }}" style="color:{{ cat.color }};font-size:18px;"></i>
+    </div>
+    <div style="flex:1;min-width:0;">
+      <p style="font-size:14px;font-weight:700;color:#e2e8f0;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ cat.name }}</p>
+      <p style="font-size:11px;color:#64748b;margin:0;">
+        {% if cat.category_type == 'income' %}<span style="color:#16a34a;">Revenu</span>
+        {% elif cat.category_type == 'expense' %}<span style="color:#dc2626;">Dépense</span>
+        {% elif cat.category_type == 'investment' %}<span style="color:#2563eb;">Investissement</span>
+        {% else %}{{ cat.get_category_type_display }}{% endif %}
+      </p>
+    </div>
+    <div style="font-size:20px;font-weight:800;color:{{ cat.color }};">
+      {{ cat.transactions.count }}
+      <p style="font-size:10px;font-weight:400;color:#64748b;margin:0;">txns</p>
+    </div>
+  </div>
+  {% empty %}
+  <div style="grid-column:1/-1;text-align:center;padding:60px 0;color:#64748b;">
+    <i class="fas fa-tags" style="font-size:36px;display:block;margin-bottom:12px;opacity:.3;"></i>
+    Aucune catégorie trouvée
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

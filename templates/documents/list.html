@@ -1,0 +1,57 @@
+{% extends 'base/base.html' %}
+{% block page_title %}Documents{% endblock %}
+{% block top_actions %}
+<a href="{% url 'documents:create' %}" class="btn-primary"><i class="fas fa-upload text-xs"></i> Uploader</a>
+{% endblock %}
+{% block content %}
+<div class="card p-4 mb-5">
+  <form method="GET" class="flex flex-wrap gap-3">
+    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Rechercher..." class="form-input flex-1 min-w-40">
+    <select name="type" class="form-select w-auto">
+      <option value="">Tous les types</option>
+      {% for val, label in document_types %}<option value="{{ val }}" {% if request.GET.type == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn-primary"><i class="fas fa-filter text-xs"></i> Filtrer</button>
+  </form>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+  {% for doc in documents %}
+  <div class="card p-5 hover:shadow-md transition-shadow">
+    <div class="flex items-start gap-3 mb-3">
+      <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                  {% if doc.is_pdf %}bg-red-100{% elif doc.is_image %}bg-green-100{% else %}bg-blue-100{% endif %}">
+        <i class="fas {% if doc.is_pdf %}fa-file-pdf text-red-600{% elif doc.is_image %}fa-image text-green-600{% else %}fa-file text-blue-600{% endif %}"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="font-medium text-gray-800 truncate">{{ doc.title }}</p>
+        <p class="text-gray-400 text-xs mt-0.5">{{ doc.get_document_type_display }} · {{ doc.file_size_display }}</p>
+      </div>
+    </div>
+    {% if doc.description %}<p class="text-gray-500 text-xs mb-3 line-clamp-2">{{ doc.description }}</p>{% endif %}
+    <div class="flex items-center justify-between">
+      <p class="text-gray-400 text-xs">{{ doc.created_at|date:"d/m/Y" }}</p>
+      <div class="flex gap-1">
+        <a href="{{ doc.file.url }}" target="_blank" class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-blue-100 hover:text-blue-600 transition-all" title="Télécharger">
+          <i class="fas fa-download text-xs"></i></a>
+        <a href="{% url 'documents:delete' doc.pk %}" class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-red-100 hover:text-red-600 transition-all" title="Supprimer">
+          <i class="fas fa-trash text-xs"></i></a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-span-3 card p-12 text-center">
+    <div class="w-14 h-14 bg-gray-100 rounded-2xl mx-auto mb-4 flex items-center justify-center">
+      <i class="fas fa-folder-open text-gray-300 text-xl"></i>
+    </div>
+    <p class="text-gray-400 font-medium">Aucun document</p>
+    <a href="{% url 'documents:create' %}" class="btn-primary mt-3 text-sm"><i class="fas fa-upload text-xs"></i> Uploader un document</a>
+  </div>
+  {% endfor %}
+</div>
+{% if is_paginated %}
+<div class="mt-4 flex justify-center gap-1">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="btn-secondary text-xs">← Précédent</a>{% endif %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="btn-secondary text-xs">Suivant →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

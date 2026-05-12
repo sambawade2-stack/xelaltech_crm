@@ -1,0 +1,64 @@
+{% extends 'base/base.html' %}
+{% block title %}Audit — FinTrack CRM{% endblock %}
+{% block page_title %}Journaux d'audit{% endblock %}
+{% block page_subtitle %}Traçabilité complète des actions{% endblock %}
+{% block content %}
+<div class="card p-4 mb-5">
+  <form method="GET" class="flex flex-wrap gap-3">
+    <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Rechercher..." class="form-input flex-1 min-w-40">
+    <select name="action" class="form-select w-auto">
+      <option value="">Toutes les actions</option>
+      {% for val, label in action_choices %}<option value="{{ val }}" {% if request.GET.action == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn-primary"><i class="fas fa-filter text-xs"></i> Filtrer</button>
+  </form>
+</div>
+<div class="card overflow-hidden">
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-100 bg-gray-50/50">
+          <th class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date/Heure</th>
+          <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Utilisateur</th>
+          <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+          <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+          <th class="px-4 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">IP</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-50">
+        {% for log in logs %}
+        <tr class="hover:bg-gray-50/60">
+          <td class="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">{{ log.timestamp|date:"d/m/Y H:i:s" }}</td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-2">
+              <div class="w-6 h-6 bg-accent rounded-full flex items-center justify-center">
+                <i class="fas fa-user text-white text-xs"></i>
+              </div>
+              <span class="text-gray-700 text-xs font-medium">{{ log.user|default:"Anonyme" }}</span>
+            </div>
+          </td>
+          <td class="px-4 py-3">
+            <span class="badge {% if log.action == 'create' %}badge-green{% elif log.action == 'delete' %}badge-red{% elif log.action == 'login' %}badge-blue{% elif log.action == 'failed_login' %}badge-red{% elif log.action == 'export' %}badge-blue{% else %}badge-yellow{% endif %}">
+              {{ log.get_action_display }}
+            </span>
+          </td>
+          <td class="px-4 py-3 text-gray-600 text-xs max-w-xs truncate">{{ log.description|default:log.object_repr }}</td>
+          <td class="px-4 py-3 text-gray-400 text-xs font-mono">{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="px-6 py-12 text-center text-gray-400">Aucun journal d'audit trouvé</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if is_paginated %}
+  <div class="px-6 py-4 border-t border-gray-50 flex items-center justify-between">
+    <p class="text-sm text-gray-400">Page {{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</p>
+    <div class="flex gap-1">
+      {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-accent hover:text-white transition-all"><i class="fas fa-chevron-left text-xs"></i></a>{% endif %}
+      {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-accent hover:text-white transition-all"><i class="fas fa-chevron-right text-xs"></i></a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

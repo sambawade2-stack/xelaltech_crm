@@ -1,0 +1,61 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Nouveau budget — FinTrack CRM{% endblock %}
+{% block page_title %}Nouveau budget{% endblock %}
+{% block page_subtitle %}Définir un budget par catégorie{% endblock %}
+
+{% block content %}
+<form method="POST" style="max-width:520px;">
+  {% csrf_token %}
+
+  {% if form.errors %}
+  <div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:8px;padding:14px 16px;margin-bottom:16px;">
+    <p style="color:#ef4444;font-size:13px;font-weight:600;margin:0 0 6px;">Erreurs :</p>
+    {% for field, errors in form.errors.items %}
+      {% for error in errors %}
+        <p style="color:#fca5a5;font-size:12px;margin:2px 0;">• {{ error }}</p>
+      {% endfor %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Nom du budget *</label>
+        {{ form.name }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Catégorie *</label>
+        {{ form.category }}
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Montant (FCFA) *</label>
+        {{ form.amount }}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Début de période *</label>
+          {{ form.period_start }}
+        </div>
+        <div>
+          <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Fin de période *</label>
+          {{ form.period_end }}
+        </div>
+      </div>
+      <div>
+        <label style="display:block;font-size:12px;font-weight:600;color:#94a3b8;margin-bottom:6px;">Seuil d'alerte (%)</label>
+        {{ form.alert_threshold }}
+        <p style="font-size:11px;color:#64748b;margin:4px 0 0;">Alerte envoyée quand ce pourcentage est dépassé</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button type="submit" class="btn-primary">
+      <i class="fas fa-save" style="font-size:11px;"></i> Créer le budget
+    </button>
+    <a href="{% url 'finance:budget_list' %}" class="btn-secondary">Annuler</a>
+  </div>
+</form>
+{% endblock %}
