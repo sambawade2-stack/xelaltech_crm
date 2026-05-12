@@ -15,9 +15,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Crée le répertoire static s'il est absent (évite W004)
+RUN mkdir -p /app/static /app/staticfiles
+
 # Bake static files into image (whitenoise sert directement depuis l'app)
 RUN SECRET_KEY=build-dummy-key \
-    DB_NAME=dummy DB_USER=dummy DB_PASSWORD=dummy DB_HOST=localhost DB_PORT=3306 \
+    DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy \
     REDIS_URL=redis://localhost:6379/0 \
     ALLOWED_HOSTS=localhost \
     DJANGO_SETTINGS_MODULE=config.settings.production \

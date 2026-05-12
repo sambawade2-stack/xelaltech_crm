@@ -7,11 +7,5 @@ python manage.py wait_for_db
 echo "[entrypoint] Application des migrations..."
 python manage.py migrate --noinput
 
-echo "[entrypoint] Démarrage de Gunicorn..."
-exec gunicorn config.wsgi:application \
-    --bind 0.0.0.0:8000 \
-    --workers 3 \
-    --timeout 120 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info
+echo "[entrypoint] Démarrage de Gunicorn sur 0.0.0.0:8000..."
+exec gunicorn config.wsgi:application --config /app/gunicorn.conf.py
