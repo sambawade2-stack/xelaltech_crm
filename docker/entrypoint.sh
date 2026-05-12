@@ -2,7 +2,7 @@
 set -e
 
 echo "[entrypoint] Attente de la base de données..."
-python manage.py wait_for_db 2>/dev/null || sleep 5
+python manage.py wait_for_db
 
 echo "[entrypoint] Application des migrations..."
 python manage.py migrate --noinput
