@@ -22,6 +22,21 @@ CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
 
+# ── Cache : base de données (pas besoin de Redis) ─────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache',
+    }
+}
+
+# ── Celery : broker Redis optionnel ───────────────────────────────────────────
+CELERY_BROKER_URL = env('REDIS_URL', default='redis://redis:6379/0')
+CELERY_RESULT_BACKEND = 'django-db'
+
+# ── Allauth : désactive le rate-limiting (utilise le cache) ──────────────────
+ACCOUNT_RATE_LIMITS = False
+
 # ── Logging vers stdout (Docker / Dokploy) ────────────────────────────────────
 LOGGING = {
     'version': 1,
