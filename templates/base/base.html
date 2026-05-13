@@ -156,13 +156,16 @@
     .msg-info    { background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; }
 
     /* ── Dark mode : overrides généraux ─────────────────────── */
+    [data-theme="dark"] body { color: var(--text-1); }
     [data-theme="dark"] main { color: var(--text-1); }
     [data-theme="dark"] table { color: var(--text-1); }
     [data-theme="dark"] thead tr { background: var(--head-row) !important; border-bottom-color: var(--border) !important; }
     [data-theme="dark"] tbody tr { border-bottom-color: var(--border) !important; }
     [data-theme="dark"] tbody tr:hover { background: var(--hover-row) !important; }
     [data-theme="dark"] th { color: var(--text-2) !important; }
-    [data-theme="dark"] .card p { color: var(--text-1); }
+    /* Texte des cartes — ne pas écraser badges et montants colorés */
+    [data-theme="dark"] .card > p,
+    [data-theme="dark"] .card > div > p:not([style*="color:#"]):not([style*="color: #"]) { color: var(--text-1); }
 
     /* ── Theme toggle ────────────────────────────────────────── */
     .theme-btn {

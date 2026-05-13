@@ -66,7 +66,7 @@
 </form>
 
 <div class="card" style="padding:0;overflow:hidden;">
-  <table style="width:100%;border-collapse:collapse;">
+  <div class="table-wrap"><table style="width:100%;border-collapse:collapse;">
     <thead>
       <tr style="border-bottom:1px solid #f1f5f9;background:#f8fafc;">
         <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">Titre</th>
@@ -107,7 +107,7 @@
       <tr><td colspan="6" style="padding:40px;text-align:center;color:#94a3b8;font-size:14px;">Aucune transaction trouvée</td></tr>
       {% endfor %}
     </tbody>
-  </table>
+  </table></div>
 </div>
 
 {% else %}
@@ -129,7 +129,7 @@
 </div>
 
 <div class="card" style="padding:0;overflow:hidden;">
-  <table style="width:100%;border-collapse:collapse;">
+  <div class="table-wrap"><table style="width:100%;border-collapse:collapse;">
     <thead>
       <tr style="border-bottom:1px solid #f1f5f9;background:#f8fafc;">
         <th style="padding:11px 16px;text-align:left;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;">N° Facture</th>
@@ -164,7 +164,7 @@
       <tr><td colspan="6" style="padding:40px;text-align:center;color:#94a3b8;font-size:14px;">Aucune facture</td></tr>
       {% endfor %}
     </tbody>
-  </table>
+  </table></div>
 </div>
 {% endif %}
 

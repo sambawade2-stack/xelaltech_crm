@@ -43,14 +43,17 @@ class ProfileView(LoginRequiredMixin, TemplateView):
             ctx['open_password'] = True
             return render(request, self.template_name, ctx)
 
-        form = UserProfileForm(request.POST, request.FILES, instance=request.user)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Profil mis à jour avec succès.")
-            return redirect('users:profile')
-        ctx = self.get_context_data()
-        ctx['form'] = form
-        return render(request, self.template_name, ctx)
+        if action == 'update_profile':
+            form = UserProfileForm(request.POST, request.FILES, instance=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request, "Profil mis à jour avec succès.")
+                return redirect('users:profile')
+            ctx = self.get_context_data()
+            ctx['form'] = form
+            return render(request, self.template_name, ctx)
+
+        return redirect('users:profile')
 
 
 class ThemeToggleView(LoginRequiredMixin, View):

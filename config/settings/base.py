@@ -63,6 +63,7 @@ MIDDLEWARE = [
     'simple_history.middleware.HistoryRequestMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'apps.audit.middleware.AuditMiddleware',
+    'apps.users.middleware.RateLimitMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'

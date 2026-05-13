@@ -34,8 +34,12 @@ CACHES = {
 CELERY_BROKER_URL = env('REDIS_URL', default='redis://redis:6379/0')
 CELERY_RESULT_BACKEND = 'django-db'
 
-# ── Allauth : désactive le rate-limiting (utilise le cache) ──────────────────
-ACCOUNT_RATE_LIMITS = False
+# ── Allauth rate limiting (utilise le cache DB) ───────────────────────────────
+ACCOUNT_RATE_LIMITS = {
+    'login_failed': '5/5m',
+    'signup':       '5/h',
+    'password_reset': '3/h',
+}
 
 # ── Logging vers stdout (Docker / Dokploy) ────────────────────────────────────
 LOGGING = {
