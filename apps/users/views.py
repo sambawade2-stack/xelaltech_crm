@@ -1,6 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.forms import PasswordChangeForm
-from django.views.generic import TemplateView
+from django.contrib.auth import update_session_auth_hash
+from django.views.generic import TemplateView, View
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.urls import reverse
@@ -28,6 +29,20 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         return ctx
 
     def post(self, request):
+        action = request.POST.get('action')
+
+        if action == 'change_password':
+            password_form = PasswordChangeForm(user=request.user, data=request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "Mot de passe modifié avec succès.")
+                return redirect('users:profile')
+            ctx = self.get_context_data()
+            ctx['password_form'] = password_form
+            ctx['open_password'] = True
+            return render(request, self.template_name, ctx)
+
         form = UserProfileForm(request.POST, request.FILES, instance=request.user)
         if form.is_valid():
             form.save()
@@ -36,6 +51,16 @@ class ProfileView(LoginRequiredMixin, TemplateView):
         ctx = self.get_context_data()
         ctx['form'] = form
         return render(request, self.template_name, ctx)
+
+
+class ThemeToggleView(LoginRequiredMixin, View):
+    def post(self, request):
+        theme = request.POST.get('theme', 'light')
+        if theme in ('light', 'dark'):
+            request.user.theme = theme
+            request.user.save(update_fields=['theme'])
+        next_url = request.POST.get('next', '/')
+        return redirect(next_url)
 
 
 class SettingsView(LoginRequiredMixin, TemplateView):

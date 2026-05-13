@@ -12,6 +12,7 @@ urlpatterns = [
     path('users/', views.UserListView.as_view(), name='list'),
     path('users/<uuid:pk>/toggle/', views.UserToggleActiveView.as_view(), name='user_toggle'),
     path('users/<uuid:pk>/edit/', views.UserEditView.as_view(), name='user_edit'),
+    path('theme-toggle/', views.ThemeToggleView.as_view(), name='theme_toggle'),
     path('password-reset/', auth_views.PasswordResetView.as_view(
         template_name='auth/password_reset.html'
     ), name='password_reset'),

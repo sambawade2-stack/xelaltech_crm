@@ -1,54 +1,162 @@
 {% extends 'base/base.html' %}
-{% block page_title %}Mon Profil{% endblock %}
+{% block title %}Mon profil{% endblock %}
+{% block page_title %}Mon profil{% endblock %}
+{% block page_subtitle %}Gérez vos informations personnelles{% endblock %}
+
 {% block content %}
-<div class="max-w-2xl space-y-5">
-  <div class="card p-6">
-    <div class="flex items-center gap-4 mb-6">
-      <img src="{{ request.user.avatar_url }}" alt="" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-gray-100">
+<div style="max-width:680px;display:flex;flex-direction:column;gap:20px;">
+
+  <!-- ── Infos personnelles ── -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border);">
+      <img src="{{ request.user.avatar_url }}" alt=""
+           style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;">
       <div>
-        <h2 class="text-xl font-bold text-gray-900">{{ request.user.get_full_name|default:request.user.username }}</h2>
-        <p class="text-gray-400 text-sm">{{ request.user.email }}</p>
-        <span class="badge badge-blue mt-1">{{ request.user.get_role_display }}</span>
+        <p style="font-size:16px;font-weight:700;color:var(--text-1);margin:0 0 2px;">
+          {{ request.user.get_full_name|default:request.user.username }}
+        </p>
+        <p style="font-size:12px;color:var(--text-3);margin:0 0 6px;">{{ request.user.email }}</p>
+        <span class="badge badge-blue">{{ request.user.get_role_display }}</span>
       </div>
     </div>
-    <form method="POST" enctype="multipart/form-data" class="space-y-4">
+
+    <form method="POST" enctype="multipart/form-data">
       {% csrf_token %}
-      <div class="grid grid-cols-2 gap-4">
+      <input type="hidden" name="action" value="update_profile">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Prénom</label>
-          {{ form.first_name }}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Nom</label>
-          {{ form.last_name }}
-        </div>
-        <div class="col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
-          {{ form.email }}
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Prénom</label>
+          <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}"
+                 class="form-input" placeholder="Votre prénom">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Téléphone</label>
-          {{ form.phone }}
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Nom</label>
+          <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}"
+                 class="form-input" placeholder="Votre nom">
+        </div>
+        <div style="grid-column:span 2;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Email</label>
+          <input type="email" name="email" value="{{ form.email.value|default:'' }}"
+                 class="form-input" placeholder="votre@email.com">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Département</label>
-          {{ form.department }}
-        </div>
-        <div class="col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Biographie</label>
-          {{ form.bio }}
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Téléphone</label>
+          <input type="text" name="phone" value="{{ form.phone.value|default:'' }}"
+                 class="form-input" placeholder="+221 77 000 00 00">
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Thème</label>
-          {{ form.theme }}
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Département</label>
+          <input type="text" name="department" value="{{ form.department.value|default:'' }}"
+                 class="form-input" placeholder="Ex: Finance">
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">Avatar</label>
-          {{ form.avatar }}
+        <div style="grid-column:span 2;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Avatar (image)</label>
+          <input type="file" name="avatar" accept="image/*" class="form-input" style="padding:6px 14px;">
         </div>
       </div>
-      <button type="submit" class="btn-primary"><i class="fas fa-save text-xs"></i> Enregistrer</button>
+      <div style="margin-top:20px;">
+        <button type="submit" class="btn-primary">
+          <i class="fas fa-save" style="font-size:11px;"></i> Enregistrer
+        </button>
+      </div>
     </form>
   </div>
+
+  <!-- ── Mot de passe ── -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;cursor:pointer;"
+         onclick="togglePasswordSection()">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:36px;height:36px;background:#eff6ff;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <i class="fas fa-lock" style="color:#2563eb;font-size:14px;"></i>
+        </div>
+        <div>
+          <p style="font-size:14px;font-weight:700;color:var(--text-1);margin:0;">Mot de passe</p>
+          <p style="font-size:12px;color:var(--text-3);margin:0;">Modifiez votre mot de passe de connexion</p>
+        </div>
+      </div>
+      <i id="pwd-chevron" class="fas fa-chevron-down" style="color:var(--text-3);transition:transform .2s;{% if open_password %}transform:rotate(180deg);{% endif %}"></i>
+    </div>
+
+    <div id="password-section" style="{% if not open_password %}display:none;{% endif %}border-top:1px solid var(--border);padding-top:20px;">
+      <form method="POST">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="change_password">
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Mot de passe actuel</label>
+            <div style="position:relative;">
+              <input type="password" name="old_password" id="old_password" required
+                     class="form-input" style="padding-right:40px;" placeholder="••••••••">
+              <button type="button" onclick="togglePwd('old_password','eye1')"
+                      style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);">
+                <i id="eye1" class="fas fa-eye" style="font-size:13px;"></i>
+              </button>
+            </div>
+            {% if open_password %}{% for e in password_form.old_password.errors %}
+              <p style="font-size:11px;color:#dc2626;margin:4px 0 0;">{{ e }}</p>
+            {% endfor %}{% endif %}
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Nouveau mot de passe</label>
+            <div style="position:relative;">
+              <input type="password" name="new_password1" id="new_password1" required
+                     class="form-input" style="padding-right:40px;" placeholder="••••••••">
+              <button type="button" onclick="togglePwd('new_password1','eye2')"
+                      style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);">
+                <i id="eye2" class="fas fa-eye" style="font-size:13px;"></i>
+              </button>
+            </div>
+            {% if open_password %}{% for e in password_form.new_password1.errors %}
+              <p style="font-size:11px;color:#dc2626;margin:4px 0 0;">{{ e }}</p>
+            {% endfor %}{% endif %}
+          </div>
+          <div>
+            <label style="display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">Confirmer le mot de passe</label>
+            <div style="position:relative;">
+              <input type="password" name="new_password2" id="new_password2" required
+                     class="form-input" style="padding-right:40px;" placeholder="••••••••">
+              <button type="button" onclick="togglePwd('new_password2','eye3')"
+                      style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);">
+                <i id="eye3" class="fas fa-eye" style="font-size:13px;"></i>
+              </button>
+            </div>
+            {% if open_password %}{% for e in password_form.new_password2.errors %}
+              <p style="font-size:11px;color:#dc2626;margin:4px 0 0;">{{ e }}</p>
+            {% endfor %}{% endif %}
+          </div>
+        </div>
+        <div style="margin-top:20px;">
+          <button type="submit" class="btn-primary">
+            <i class="fas fa-key" style="font-size:11px;"></i> Changer le mot de passe
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function togglePasswordSection() {
+  var s = document.getElementById('password-section');
+  var c = document.getElementById('pwd-chevron');
+  var hidden = s.style.display === 'none';
+  s.style.display = hidden ? 'block' : 'none';
+  c.style.transform = hidden ? 'rotate(180deg)' : '';
+}
+function togglePwd(inputId, iconId) {
+  var inp = document.getElementById(inputId);
+  var icon = document.getElementById(iconId);
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    inp.type = 'password';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+</script>
 {% endblock %}

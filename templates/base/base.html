@@ -1,20 +1,60 @@
 <!DOCTYPE html>
-<html lang="fr" style="height:100%">
+<html lang="fr" style="height:100%" data-theme="{{ request.user.theme|default:'light' }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}{% if company %}{{ company.name }}{% else %}Xelaltech221 CRM{% endif %}{% endblock %}</title>
+  <title>{% block title %}{% if company %}{{ company.name }}{% else %}FinTrack CRM{% endif %}{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <style>
+    *, *::before, *::after { box-sizing: border-box; }
     * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif; }
 
-    /* ---- Sidebar ---- */
-    .sidebar { background: #081C3A; width: 240px; min-height: 100vh; display: flex; flex-direction: column; }
+    /* ── Variables de thème ──────────────────────────────────── */
+    :root {
+      --bg:           #f8fafc;
+      --surface:      #ffffff;
+      --border:       #f1f5f9;
+      --border-input: #e5e7eb;
+      --text-1:       #0f172a;
+      --text-2:       #64748b;
+      --text-3:       #94a3b8;
+      --input-bg:     #ffffff;
+      --input-text:   #374151;
+      --hover-row:    #fafbfc;
+      --head-row:     #f8fafc;
+      --scrollbar:    #cbd5e1;
+    }
+    [data-theme="dark"] {
+      --bg:           #0f172a;
+      --surface:      #1e293b;
+      --border:       #334155;
+      --border-input: #334155;
+      --text-1:       #f1f5f9;
+      --text-2:       #94a3b8;
+      --text-3:       #64748b;
+      --input-bg:     #253348;
+      --input-text:   #e2e8f0;
+      --hover-row:    #1e2d3d;
+      --head-row:     #1e293b;
+      --scrollbar:    #475569;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────── */
+    body { margin:0; min-height:100vh; background:var(--bg); display:flex; }
+
+    /* ── Sidebar ─────────────────────────────────────────────── */
+    .sidebar {
+      background: #081C3A; width: 240px; min-height: 100vh;
+      display: flex; flex-direction: column;
+      flex-shrink: 0; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+      transition: transform .3s ease;
+      z-index: 200;
+    }
     .sidebar-nav-label {
-      padding: 16px 16px 6px 16px; font-size: 10px; font-weight: 700;
+      padding: 16px 16px 6px; font-size: 10px; font-weight: 700;
       text-transform: uppercase; letter-spacing: .08em; color: #64748b;
     }
     .sidebar-link {
@@ -27,40 +67,49 @@
     .sidebar-link.active { background: #2563EB; color: #fff; }
     .sidebar-link .icon { width: 16px; text-align: center; flex-shrink: 0; }
 
-    /* ---- Buttons ---- */
+    /* Overlay mobile */
+    .sidebar-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.55); z-index: 199;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────── */
     .btn-primary {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 8px 16px; background: #2563EB; color: #fff;
       font-size: 13px; font-weight: 500; border-radius: 8px; border: none;
-      cursor: pointer; text-decoration: none; transition: background .15s;
+      cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap;
     }
     .btn-primary:hover { background: #1d4ed8; color: #fff; }
     .btn-secondary {
       display: inline-flex; align-items: center; gap: 7px;
-      padding: 8px 16px; background: #fff; color: #374151;
+      padding: 8px 16px; background: var(--surface); color: var(--input-text);
       font-size: 13px; font-weight: 500; border-radius: 8px;
-      border: 1px solid #e5e7eb; cursor: pointer; text-decoration: none;
-      transition: background .15s;
+      border: 1px solid var(--border-input); cursor: pointer; text-decoration: none;
+      transition: background .15s; white-space: nowrap;
     }
-    .btn-secondary:hover { background: #f9fafb; }
+    .btn-secondary:hover { background: var(--head-row); }
     .btn-danger {
       display: inline-flex; align-items: center; gap: 7px;
       padding: 8px 16px; background: #ef4444; color: #fff;
       font-size: 13px; font-weight: 500; border-radius: 8px; border: none;
-      cursor: pointer; text-decoration: none; transition: background .15s;
+      cursor: pointer; text-decoration: none; transition: background .15s; white-space: nowrap;
     }
     .btn-danger:hover { background: #dc2626; }
 
-    /* ---- Cards ---- */
-    .card { background: #fff; border-radius: 12px; border: 1px solid #f1f5f9; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+    /* ── Cards ───────────────────────────────────────────────── */
+    .card {
+      background: var(--surface); border-radius: 12px;
+      border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    }
     .stat-card {
-      background: #fff; border-radius: 12px; border: 1px solid #f1f5f9;
-      box-shadow: 0 1px 3px rgba(0,0,0,.04); padding: 24px;
+      background: var(--surface); border-radius: 12px; border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,.04); padding: 20px;
       transition: box-shadow .2s;
     }
     .stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
 
-    /* ---- Badges ---- */
+    /* ── Badges ──────────────────────────────────────────────── */
     .badge {
       display: inline-flex; align-items: center;
       padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
@@ -71,49 +120,90 @@
     .badge-blue   { background: #dbeafe; color: #1d4ed8; }
     .badge-gray   { background: #f1f5f9; color: #475569; }
     .badge-purple { background: #ede9fe; color: #7c3aed; }
+    [data-theme="dark"] .badge-gray { background: #334155; color: #94a3b8; }
 
-    /* ---- Form elements ---- */
+    /* ── Form elements ───────────────────────────────────────── */
     .form-input, .form-select, .form-textarea {
-      width: 100%; padding: 9px 14px; font-size: 13px; color: #374151;
-      border: 1px solid #e5e7eb; border-radius: 8px; background: #fff;
+      width: 100%; padding: 9px 14px; font-size: 13px; color: var(--input-text);
+      border: 1px solid var(--border-input); border-radius: 8px; background: var(--input-bg);
       outline: none; transition: border-color .15s, box-shadow .15s;
-      box-sizing: border-box;
     }
     .form-input:focus, .form-select:focus, .form-textarea:focus {
       border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37,99,235,.1);
     }
     .form-textarea { resize: vertical; }
 
-    /* ---- Table ---- */
+    /* ── Table responsive ────────────────────────────────────── */
+    .table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .table-action-btn {
-      width: 30px; height: 30px; border-radius: 7px; background: #f8fafc;
+      width: 30px; height: 30px; border-radius: 7px; background: var(--head-row);
       display: inline-flex; align-items: center; justify-content: center;
-      color: #64748b; text-decoration: none; border: 1px solid #e5e7eb;
-      transition: background .15s, color .15s;
+      color: var(--text-2); text-decoration: none; border: 1px solid var(--border-input);
+      transition: background .15s, color .15s; flex-shrink: 0;
     }
     .table-action-btn:hover { background: #dbeafe; color: #2563EB; border-color: #bfdbfe; }
     .table-action-btn.danger:hover { background: #fee2e2; color: #dc2626; border-color: #fecaca; }
 
-    /* ---- Scrollbar ---- */
+    /* ── Scrollbar ───────────────────────────────────────────── */
     ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 3px; }
 
-    /* ---- Messages Django ---- */
+    /* ── Messages ────────────────────────────────────────────── */
     .msg-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; }
     .msg-error   { background:#fef2f2; border:1px solid #fecaca; color:#dc2626; }
     .msg-warning { background:#fffbeb; border:1px solid #fde68a; color:#d97706; }
     .msg-info    { background:#eff6ff; border:1px solid #bfdbfe; color:#2563eb; }
+
+    /* ── Dark mode : overrides généraux ─────────────────────── */
+    [data-theme="dark"] main { color: var(--text-1); }
+    [data-theme="dark"] table { color: var(--text-1); }
+    [data-theme="dark"] thead tr { background: var(--head-row) !important; border-bottom-color: var(--border) !important; }
+    [data-theme="dark"] tbody tr { border-bottom-color: var(--border) !important; }
+    [data-theme="dark"] tbody tr:hover { background: var(--hover-row) !important; }
+    [data-theme="dark"] th { color: var(--text-2) !important; }
+    [data-theme="dark"] .card p { color: var(--text-1); }
+
+    /* ── Theme toggle ────────────────────────────────────────── */
+    .theme-btn {
+      width: 36px; height: 36px; background: var(--surface); border: 1px solid var(--border-input);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      color: var(--text-2); cursor: pointer; transition: background .15s; flex-shrink: 0;
+    }
+    .theme-btn:hover { background: var(--head-row); }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed; left: -260px; top: 0; height: 100vh;
+        width: 260px; z-index: 200;
+      }
+      .sidebar.open { transform: translateX(260px); }
+      .sidebar-overlay.open { display: block; }
+      .hamburger { display: flex !important; }
+      .search-bar { display: none !important; }
+      main { padding: 16px !important; }
+      .stat-card { padding: 16px !important; }
+    }
+    .hamburger {
+      display: none; width: 36px; height: 36px; background: var(--surface);
+      border: 1px solid var(--border-input); border-radius: 8px;
+      align-items: center; justify-content: center;
+      color: var(--text-2); cursor: pointer; flex-shrink: 0;
+    }
   </style>
   {% block extra_css %}{% endblock %}
 </head>
-<body style="min-height:100vh; background:#f8fafc; display:flex;">
+<body>
+
+<!-- Overlay mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
 <!-- ===================== SIDEBAR ===================== -->
-<aside class="sidebar" style="flex-shrink:0; position:sticky; top:0; height:100vh; overflow-y:auto;">
+<aside class="sidebar" id="sidebar">
 
   <!-- Logo -->
-  <div style="padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,.08);">
+  <div style="padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,.08); flex-shrink:0;">
     <div style="display:flex; align-items:center; gap:10px;">
       {% if company and company.logo %}
         <img src="{{ company.logo.url }}" alt="{{ company.name }}"
@@ -124,21 +214,19 @@
         </div>
       {% endif %}
       <span style="color:#fff;font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        {% if company %}{{ company.name }}{% else %}Xelaltech221 CRM{% endif %}
+        {% if company %}{{ company.name }}{% else %}FinTrack CRM{% endif %}
       </span>
+      <!-- Close btn mobile -->
+      <button onclick="closeSidebar()" style="margin-left:auto;background:none;border:none;color:#64748b;cursor:pointer;font-size:16px;line-height:1;display:none;" id="sidebar-close">✕</button>
     </div>
   </div>
 
   <!-- Navigation -->
-  <nav style="flex:1; padding:8px 0;">
-
-    <!-- Tous les rôles -->
+  <nav style="flex:1; padding:8px 0; overflow-y:auto;">
     <a href="{% url 'dashboard:index' %}"
        class="sidebar-link {% if request.resolver_match.app_name == 'dashboard' %}active{% endif %}">
       <i class="fas fa-home icon"></i> Tableau de bord
     </a>
-
-    <!-- Finances : lecture pour tous, écriture selon rôle -->
     <a href="{% url 'finance:index' %}"
        class="sidebar-link {% if 'finance' in request.path and 'budget' not in request.path and 'budget-request' not in request.path %}active{% endif %}">
       <i class="fas fa-exchange-alt icon"></i> Finances
@@ -147,8 +235,6 @@
        class="sidebar-link {% if 'budgets' in request.path %}active{% endif %}">
       <i class="fas fa-wallet icon"></i> Budgets & Caisse
     </a>
-
-    <!-- Demandes de budget : tous les rôles -->
     <a href="{% url 'finance:budget_requests' %}"
        class="sidebar-link {% if 'budget-request' in request.path %}active{% endif %}"
        style="position:relative;">
@@ -158,22 +244,16 @@
                    font-size:10px;font-weight:700;padding:1px 6px;">{{ pending_budget_requests_count }}</span>
       {% endif %}
     </a>
-
-    <!-- Rapports : admin + comptable -->
     {% if request.user.can_access_finance %}
     <a href="{% url 'reports:list' %}"
        class="sidebar-link {% if 'reports' in request.path %}active{% endif %}">
       <i class="fas fa-chart-bar icon"></i> Rapports
     </a>
     {% endif %}
-
-    <!-- Documents : tous -->
     <a href="{% url 'documents:list' %}"
        class="sidebar-link {% if 'documents' in request.path %}active{% endif %}">
       <i class="fas fa-folder icon"></i> Documents
     </a>
-
-    <!-- Admin seulement -->
     {% if request.user.is_admin %}
     <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.06);">
       <p class="sidebar-nav-label">Administration</p>
@@ -187,11 +267,10 @@
       </a>
     </div>
     {% endif %}
-
   </nav>
 
-  <!-- User info + settings -->
-  <div style="padding:12px 8px; border-top:1px solid rgba(255,255,255,.08);">
+  <!-- User info -->
+  <div style="padding:12px 8px; border-top:1px solid rgba(255,255,255,.08); flex-shrink:0;">
     <a href="{% url 'users:settings' %}"
        class="sidebar-link {% if 'settings' in request.path %}active{% endif %}"
        style="margin-bottom:4px;">
@@ -199,18 +278,18 @@
     </a>
     <div style="display:flex;align-items:center;gap:10px;padding:8px;">
       <img src="{{ request.user.avatar_url }}" alt=""
-           style="width:34px;height:34px;border-radius:50%;object-fit:cover;">
+           style="width:34px;height:34px;border-radius:50%;object-fit:cover;flex-shrink:0;">
       <div style="flex:1;min-width:0;">
-        <p style="color:#f1f5f9;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+        <p style="color:#f1f5f9;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;">
           {{ request.user.get_full_name|default:request.user.username }}
         </p>
-        <p style="color:#64748b;font-size:11px;">{{ request.user.get_role_display }}</p>
+        <p style="color:#64748b;font-size:11px;margin:0;">{{ request.user.get_role_display }}</p>
       </div>
-      <div style="display:flex;gap:4px;">
+      <div style="display:flex;gap:4px;flex-shrink:0;">
         <a href="{% url 'users:profile' %}"
            style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#64748b;text-decoration:none;transition:background .15s;"
            onmouseover="this.style.background='rgba(255,255,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">
-          <i class="fas fa-cog" style="font-size:12px;"></i>
+          <i class="fas fa-user" style="font-size:12px;"></i>
         </a>
         <a href="{% url 'account_logout' %}"
            style="width:28px;height:28px;border-radius:6px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;color:#64748b;text-decoration:none;transition:background .15s;"
@@ -226,27 +305,28 @@
 <div style="flex:1; min-width:0; display:flex; flex-direction:column; overflow:hidden;">
 
   <!-- Top bar -->
-  <header style="background:#fff;border-bottom:1px solid #f1f5f9;padding:0 24px;height:60px;
-                 display:flex;align-items:center;justify-content:space-between;
-                 position:sticky;top:0;z-index:10;flex-shrink:0;">
-    <div>
-      <h1 style="font-size:16px;font-weight:700;color:#0f172a;margin:0;">
-        {% block page_title %}Dashboard{% endblock %}
-      </h1>
-      <p style="font-size:12px;color:#94a3b8;margin:0;">{% block page_subtitle %}{% endblock %}</p>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="position:relative;display:none;" class="md:block">
-        <input type="text" placeholder="Rechercher..."
-               style="width:220px;padding:7px 12px 7px 34px;background:#f8fafc;border:1px solid #e5e7eb;
-                      border-radius:8px;font-size:13px;color:#374151;outline:none;">
-        <i class="fas fa-search" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:12px;"></i>
+  <header style="background:var(--surface);border-bottom:1px solid var(--border);padding:0 20px;height:60px;
+                 display:flex;align-items:center;justify-content:space-between;gap:12px;
+                 position:sticky;top:0;z-index:100;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:12px;min-width:0;">
+      <!-- Hamburger mobile -->
+      <button class="hamburger" onclick="openSidebar()" style="border:none;">
+        <i class="fas fa-bars" style="font-size:14px;"></i>
+      </button>
+      <div style="min-width:0;">
+        <h1 style="font-size:15px;font-weight:700;color:var(--text-1);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {% block page_title %}Dashboard{% endblock %}
+        </h1>
+        <p style="font-size:12px;color:var(--text-3);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{% block page_subtitle %}{% endblock %}</p>
       </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <!-- Notifications -->
       <a href="{% url 'notifications:list' %}"
-         style="position:relative;width:36px;height:36px;background:#f8fafc;border:1px solid #e5e7eb;
+         style="position:relative;width:36px;height:36px;background:var(--surface);border:1px solid var(--border-input);
                 border-radius:8px;display:flex;align-items:center;justify-content:center;
-                color:#64748b;text-decoration:none;transition:background .15s;"
-         onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+                color:var(--text-2);text-decoration:none;transition:background .15s;flex-shrink:0;">
         <i class="fas fa-bell" style="font-size:13px;"></i>
         {% if unread_notifications_count > 0 %}
           <span style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;
@@ -256,28 +336,43 @@
           </span>
         {% endif %}
       </a>
+
+      <!-- Toggle thème -->
+      <form method="POST" action="{% url 'users:theme_toggle' %}" style="margin:0;">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <input type="hidden" name="theme" value="{% if request.user.theme == 'dark' %}light{% else %}dark{% endif %}">
+        <button type="submit" class="theme-btn" title="Changer le thème">
+          {% if request.user.theme == 'dark' %}
+            <i class="fas fa-sun" style="font-size:13px;color:#f59e0b;"></i>
+          {% else %}
+            <i class="fas fa-moon" style="font-size:13px;"></i>
+          {% endif %}
+        </button>
+      </form>
+
       {% block top_actions %}{% endblock %}
     </div>
   </header>
 
-  <!-- Django Messages (toast auto-dismiss) -->
+  <!-- Toasts -->
   {% if messages %}
-  <div id="toast-container" style="position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px;">
+  <div id="toast-container" style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:min(360px, calc(100vw - 32px));">
     {% for message in messages %}
-    <div class="toast-msg" style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;
+    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;
          font-size:13px;box-shadow:0 4px 16px rgba(0,0,0,.12);
          background:{% if message.tags == 'error' %}#fef2f2{% elif message.tags == 'warning' %}#fffbeb{% else %}#f0fdf4{% endif %};
          border-left:3px solid {% if message.tags == 'error' %}#dc2626{% elif message.tags == 'warning' %}#f59e0b{% else %}#16a34a{% endif %};">
       <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle" style="color:#dc2626{% elif message.tags == 'warning' %}fa-exclamation-triangle" style="color:#f59e0b{% else %}fa-check-circle" style="color:#16a34a{% endif %};font-size:14px;flex-shrink:0;"></i>
       <span style="color:#374151;flex:1;">{{ message }}</span>
-      <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;">✕</button>
+      <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;flex-shrink:0;">✕</button>
     </div>
     {% endfor %}
   </div>
   <script>
     setTimeout(function() {
       var c = document.getElementById('toast-container');
-      if (c) { c.style.transition = 'opacity .4s'; c.style.opacity = '0'; setTimeout(function(){ c.remove(); }, 400); }
+      if (c) { c.style.transition='opacity .4s'; c.style.opacity='0'; setTimeout(function(){ c.remove(); },400); }
     }, 3000);
   </script>
   {% endif %}
@@ -288,6 +383,22 @@
   </main>
 </div>
 
+<script>
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('sidebar-overlay').classList.add('open');
+  document.getElementById('sidebar-close').style.display = 'flex';
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.getElementById('sidebar-close').style.display = 'none';
+}
+// Ferme sidebar si on clique sur un lien
+document.querySelectorAll('.sidebar-link').forEach(function(link) {
+  link.addEventListener('click', function() { closeSidebar(); });
+});
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
